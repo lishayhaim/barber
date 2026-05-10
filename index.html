@@ -55,6 +55,11 @@ async function deleteAppointment(id) { return sbFetch(`appointments?id=eq.${id}`
 async function getAvailability() { return sbFetch('availability?select=*'); }
 async function addAvailability(date, time) { return sbFetch('availability', { method: 'POST', body: JSON.stringify({date, time}) }); }
 async function removeAvailability(date, time) { return sbFetch(`availability?date=eq.${date}&time=eq.${time}`, { method: 'DELETE', prefer: 'return=minimal' }); }
+async function getAllUsers() { return sbFetch('users?select=*&order=created_at.desc'); }
+async function deleteUser(id) { return sbFetch(`users?id=eq.${id}`, { method: 'DELETE', prefer: 'return=minimal' }); }
+async function updateUserPassword(id, password) { return sbFetch(`users?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({password}), prefer: 'return=minimal' }); }
+async function getLogs() { return sbFetch('logs?select=*&order=created_at.desc&limit=100'); }
+async function addLog(action, details, username='') { return sbFetch('logs', { method: 'POST', body: JSON.stringify({action, details, username}) }).catch(()=>{}); }
 
 function generateSlots() {
   const slots = [];
@@ -70,12 +75,13 @@ function generateSlots() {
 }
 
 let state = {
-  view: 'login', user: null, appointments: [], availability: [],
+  view: 'login', user: null, appointments: [], availability: [], users: [], logs: [],
   selectedDate: null, registerMode: false, form: {}, ownerTab: 'calendar',
   calendarWeekOffset: 0, error: '', success: '', loading: false,
   selectedService: null, bookingStep: 'date',
   rescheduleAppt: null, rescheduleWeekOffset: 0,
-  availMonthOffset: 0, availSelectedDate: null
+  availMonthOffset: 0, availSelectedDate: null,
+  resetPasswordId: null, resetPasswordValue: ''
 };
 
 function formatPhone(p) {
@@ -121,10 +127,10 @@ function render() {
   if (state.view==='login') app.innerHTML = renderLogin();
   else if (state.view==='owner') app.innerHTML = renderOwner();
   else if (state.view==='customer') app.innerHTML = renderCustomer();
-  // רק inputs צריכים listener — כפתורים מטופלים ע"י delegation
   document.querySelectorAll('input').forEach(inp => inp.addEventListener('input', e => {
     const map={'login-user':'username','login-pass':'password','reg-name':'name','reg-phone':'phone','reg-user':'username','reg-pass':'password'};
     if (map[e.target.id]) state.form[map[e.target.id]] = e.target.value;
+    if (e.target.id && e.target.id.startsWith('reset-pw-')) state.resetPasswordValue = e.target.value;
   }));
 }
 
@@ -199,13 +205,15 @@ function renderOwner() {
         <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:3px;">סה"כ תורים</div>
       </div>
     </div>
-    <div style="display:flex;border-bottom:0.5px solid rgba(255,255,255,0.06);position:sticky;top:64px;background:#0f0f1a;z-index:9;">
-      <button data-action="owner-tab" data-tab="calendar" style="flex:1;padding:11px 4px;background:${tab==='calendar'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='calendar'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='calendar'?'#c9a84c':'rgba(255,255,255,0.4)'};font-size:12px;cursor:pointer;">📅 יומן</button>
-      <button data-action="owner-tab" data-tab="list" style="flex:1;padding:11px 4px;background:${tab==='list'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='list'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='list'?'#c9a84c':'rgba(255,255,255,0.4)'};font-size:12px;cursor:pointer;">📋 רשימה</button>
-      <button data-action="owner-tab" data-tab="availability" style="flex:1;padding:11px 4px;background:${tab==='availability'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='availability'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='availability'?'#c9a84c':'rgba(255,255,255,0.4)'};font-size:12px;cursor:pointer;">⚙️ זמינות</button>
+    <div style="display:flex;border-bottom:0.5px solid rgba(255,255,255,0.06);position:sticky;top:64px;background:#0f0f1a;z-index:9;overflow-x:auto;">
+      <button data-action="owner-tab" data-tab="calendar" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='calendar'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='calendar'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='calendar'?'#c9a84c':'rgba(255,255,255,0.4)'};font-size:11px;cursor:pointer;white-space:nowrap;">📅 יומן</button>
+      <button data-action="owner-tab" data-tab="list" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='list'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='list'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='list'?'#c9a84c':'rgba(255,255,255,0.4)'};font-size:11px;cursor:pointer;white-space:nowrap;">📋 רשימה</button>
+      <button data-action="owner-tab" data-tab="availability" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='availability'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='availability'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='availability'?'#c9a84c':'rgba(255,255,255,0.4)'};font-size:11px;cursor:pointer;white-space:nowrap;">⚙️ זמינות</button>
+      <button data-action="owner-tab" data-tab="customers" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='customers'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='customers'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='customers'?'#c9a84c':'rgba(255,255,255,0.4)'};font-size:11px;cursor:pointer;white-space:nowrap;">👥 לקוחות</button>
+      <button data-action="owner-tab" data-tab="logs" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='logs'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='logs'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='logs'?'#c9a84c':'rgba(255,255,255,0.4)'};font-size:11px;cursor:pointer;white-space:nowrap;">📜 לוגים</button>
     </div>
     <div style="flex:1;padding:1rem;overflow-y:auto;">
-      ${tab==='calendar' ? renderOwnerCalendar() : tab==='list' ? renderOwnerList() : renderOwnerAvailability()}
+      ${tab==='calendar' ? renderOwnerCalendar() : tab==='list' ? renderOwnerList() : tab==='availability' ? renderOwnerAvailability() : tab==='customers' ? renderOwnerCustomers() : renderOwnerLogs()}
     </div>
   </div>
   ${state.rescheduleAppt ? renderRescheduleModal() : ''}`;
@@ -323,6 +331,60 @@ function renderOwnerAvailability() {
       </div>
     </div>` : `<div style="text-align:center;color:rgba(255,255,255,0.25);padding:2rem;font-size:13px;">בחר יום לניהול השעות</div>`}
   </div>`;
+}
+
+function renderOwnerCustomers() {
+  const users = state.users;
+  if (!users.length) return `<div style="text-align:center;color:rgba(255,255,255,0.25);padding:3rem;font-size:14px;">אין לקוחות רשומים</div>`;
+  return users.map(u => {
+    const appts = state.appointments.filter(a=>a.username===u.username);
+    const isResetting = state.resetPasswordId === u.id;
+    return `<div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <div style="width:38px;height:38px;background:rgba(201,168,76,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">👤</div>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:500;color:#fff;">${u.name}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:1px;">📞 ${formatPhone(u.phone)} · @${u.username}</div>
+          <div style="font-size:11px;color:rgba(201,168,76,0.6);margin-top:1px;">✂️ ${appts.length} תורים</div>
+        </div>
+      </div>
+      ${isResetting ? `
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <input id="reset-pw-${u.id}" type="text" placeholder="סיסמה חדשה" value="${state.resetPasswordValue}" style="flex:1;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 10px;color:#fff;font-size:13px;outline:none;">
+          <button data-action="confirm-reset-pw" data-id="${u.id}" style="background:#c9a84c;border:none;color:#1a1a2e;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">אשר</button>
+          <button data-action="cancel-reset-pw" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);padding:8px 10px;border-radius:8px;font-size:12px;cursor:pointer;">ביטול</button>
+        </div>` : ''}
+      <div style="display:flex;gap:6px;">
+        <button data-action="reset-pw" data-id="${u.id}" style="flex:1;padding:7px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);border-radius:8px;font-size:12px;cursor:pointer;">🔑 איפוס סיסמה</button>
+        <button data-action="delete-user" data-id="${u.id}" data-name="${u.name}" style="flex:1;padding:7px;background:rgba(220,50,50,0.1);border:0.5px solid rgba(220,50,50,0.25);color:#ff8080;border-radius:8px;font-size:12px;cursor:pointer;">🗑 מחק לקוח</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderOwnerLogs() {
+  const logs = state.logs;
+  if (!logs.length) return `<div style="text-align:center;color:rgba(255,255,255,0.25);padding:3rem;font-size:14px;">אין לוגים עדיין</div>`;
+  return `
+  <div style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+    <div style="font-size:12px;color:rgba(255,255,255,0.35);">${logs.length} אירועים אחרונים</div>
+    <button data-action="refresh-appts" style="background:rgba(201,168,76,0.12);border:0.5px solid rgba(201,168,76,0.25);color:#c9a84c;padding:5px 12px;border-radius:8px;font-size:12px;cursor:pointer;">↻ רענן</button>
+  </div>
+  ${logs.map(l => {
+    const dt = new Date(l.created_at);
+    const dateStr = `${dt.getDate()}/${dt.getMonth()+1}/${dt.getFullYear()} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+    const icons = {'קביעת תור':'📅','ביטול תור':'❌','שינוי מועד':'🔄','מחיקת לקוח':'🗑','איפוס סיסמה':'🔑','הרשמה':'👤','כניסה':'🔐'};
+    const icon = Object.keys(icons).find(k=>l.action.includes(k)) ? icons[Object.keys(icons).find(k=>l.action.includes(k))] : '📋';
+    return `<div style="background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;gap:10px;align-items:flex-start;">
+      <div style="font-size:18px;flex-shrink:0;">${icon}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;color:#fff;font-weight:500;">${l.action}</div>
+        ${l.details?`<div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px;">${l.details}</div>`:''}
+        ${l.username?`<div style="font-size:11px;color:rgba(201,168,76,0.5);margin-top:1px;">@${l.username}</div>`:''}
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.25);white-space:nowrap;">${dateStr}</div>
+    </div>`;
+  }).join('')}`;
 }
 
 function renderRescheduleModal() {
@@ -588,8 +650,36 @@ function handleAction(e) {
     doRegister(name, phone, username, password);
   }
   else if (action==='logout') { state.user=null; state.view='login'; state.form={}; state.selectedDate=null; state.appointments=[]; render(); }
-  else if (action==='owner-tab') { state.ownerTab=e.currentTarget.dataset.tab; render(); doRefresh(); }
+  else if (action==='owner-tab') {
+    state.ownerTab=e.currentTarget.dataset.tab;
+    render();
+    if (state.ownerTab==='customers') doLoadUsers();
+    else if (state.ownerTab==='logs') doLoadLogs();
+    else doRefresh();
+  }
   else if (action==='refresh-appts') { doRefresh(); }
+  else if (action==='reset-pw') {
+    state.resetPasswordId=e.currentTarget.dataset.id;
+    state.resetPasswordValue='';
+    render();
+    // focus the input
+    setTimeout(()=>{ const el=document.getElementById('reset-pw-'+state.resetPasswordId); if(el)el.focus(); },50);
+  }
+  else if (action==='cancel-reset-pw') { state.resetPasswordId=null; state.resetPasswordValue=''; render(); }
+  else if (action==='confirm-reset-pw') {
+    const id=e.currentTarget.dataset.id;
+    const inp=document.getElementById('reset-pw-'+id);
+    const pw=inp?inp.value:state.resetPasswordValue;
+    if (!pw||pw.length<2) { state.error='סיסמה קצרה מדי'; render(); return; }
+    const u=state.users.find(x=>x.id===id);
+    doResetPassword(id, pw, u?.username||'', u?.name||'');
+  }
+  else if (action==='delete-user') {
+    const id=e.currentTarget.dataset.id;
+    const name=e.currentTarget.dataset.name;
+    if (!confirm(`למחוק את הלקוח ${name}? כל התורים שלו יימחקו גם כן.`)) return;
+    doDeleteUser(id, name);
+  }
   else if (action==='avail-month-prev') { if(state.availMonthOffset>0)state.availMonthOffset--; render(); }
   else if (action==='avail-month-next') { state.availMonthOffset++; render(); }
   else if (action==='avail-select-date') { if(e.currentTarget.dataset.past==='true') return; state.availSelectedDate=e.currentTarget.dataset.date; render(); }
@@ -678,10 +768,11 @@ async function doRefresh() {
   try { const [a,v]=await Promise.all([getAppointments(),getAvailability()]); state.appointments=a; state.availability=v; } catch {} render();
 }
 async function doBooking(date,time,serviceId,service) {
-  try { const appt=await createAppointment({date,time,username:state.user.username,customer_name:state.user.name,customer_phone:state.user.phone,service:serviceId}); state.appointments.push(appt[0]); const fd=formatDisplayDate(new Date(date+'T12:00:00')); state.success=`✓ התור נקבע בהצלחה!\n${fd.date} ${fd.month} בשעה ${time}\n${service.name} — ₪${service.price}`; state.bookingStep='date';state.pendingTime=null;state.selectedService=null;state.selectedDate=null;state.calendarWeekOffset=0; } catch(err){state.error='שגיאה בקביעת תור: '+(err.message||'');} render();
+  try { const appt=await createAppointment({date,time,username:state.user.username,customer_name:state.user.name,customer_phone:state.user.phone,service:serviceId}); state.appointments.push(appt[0]); const fd=formatDisplayDate(new Date(date+'T12:00:00')); state.success=`✓ התור נקבע בהצלחה!\n${fd.date} ${fd.month} בשעה ${time}\n${service.name} — ₪${service.price}`; state.bookingStep='date';state.pendingTime=null;state.selectedService=null;state.selectedDate=null;state.calendarWeekOffset=0; await addLog('קביעת תור', `${date} ${time} | ${service.name}`, state.user.username).catch(()=>{}); } catch(err){state.error='שגיאה בקביעת תור: '+(err.message||'');} render();
 }
 async function doCancelAppt(id) {
-  try { await deleteAppointment(id); state.appointments=state.appointments.filter(a=>a.id!==id); } catch { state.error='שגיאה בביטול'; } render();
+  const a=state.appointments.find(x=>x.id===id);
+  try { await deleteAppointment(id); state.appointments=state.appointments.filter(x=>x.id!==id); if(a) await addLog('ביטול תור', `${a.date} ${a.time}`, a.username||'').catch(()=>{}); } catch { state.error='שגיאה בביטול'; } render();
 }
 async function doReschedule(a,newDate,newTime) {
   try { await deleteAppointment(a.id); const appt=await createAppointment({date:newDate,time:newTime,username:a.username,customer_name:a.customer_name,customer_phone:a.customer_phone,service:a.service}); state.appointments=state.appointments.filter(x=>x.id!==a.id); state.appointments.push(appt[0]); state.rescheduleAppt=null;state.rescheduleDate=null;state.rescheduleTime=null; } catch { state.error='שגיאה בשינוי מועד'; } render();
@@ -698,6 +789,36 @@ async function doAvailCloseAll(date) {
   const toRemove=state.availability.filter(a=>a.date===date&&!state.appointments.some(ap=>ap.date===date&&ap.time===a.time));
   try { for(const a of toRemove){await removeAvailability(a.date,a.time);} state.availability=state.availability.filter(a=>!(a.date===date&&toRemove.some(r=>r.time===a.time))); } catch(err){state.error='שגיאה: '+err.message;} render();
 }
+async function doLoadUsers() {
+  try { state.users = await getAllUsers(); } catch(err) { state.error='שגיאה בטעינת לקוחות'; }
+  render();
+}
+async function doLoadLogs() {
+  try { state.logs = await getLogs(); } catch(err) { state.error='שגיאה בטעינת לוגים'; }
+  render();
+}
+async function doResetPassword(id, password, username, name) {
+  try {
+    await updateUserPassword(id, password);
+    await addLog('איפוס סיסמה', `סיסמה אופסה ללקוח: ${name}`, username);
+    state.resetPasswordId=null; state.resetPasswordValue='';
+  } catch(err) { state.error='שגיאה: '+err.message; }
+  render();
+}
+async function doDeleteUser(id, name) {
+  try {
+    const u = state.users.find(x=>x.id===id);
+    const userAppts = u ? state.appointments.filter(a=>a.username===u.username) : [];
+    for (const a of userAppts) await deleteAppointment(a.id).catch(()=>{});
+    await deleteUser(id);
+    await addLog('מחיקת לקוח', `נמחק: ${name}`, u?.username||'');
+    state.users = state.users.filter(x=>x.id!==id);
+    state.appointments = state.appointments.filter(a=>!userAppts.find(x=>x.id===a.id));
+  } catch(err) { state.error='שגיאה: '+err.message; }
+  render();
+}
+
+// לוגים גם לפעולות לקוח - מובנים ב-helpers
 
 render();
 
