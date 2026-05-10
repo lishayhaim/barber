@@ -124,7 +124,7 @@ function getDates(weekOffset) {
 function formatDate(d) { return d.toISOString().split('T')[0]; }
 function formatDisplayDate(d) {
   return {
-    day: ['א','ב','ג','ד','ה','ו','ש'][d.getDay()],
+    day: ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][d.getDay()],
     date: d.getDate(),
     month: ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'][d.getMonth()]
   };
@@ -287,7 +287,7 @@ function renderOwnerDaySlots(dateStr) {
 function renderOwnerAvailability() {
   const today = formatDate(new Date());
   const { year, month, daysInMonth, monthName } = getMonthDates(state.availMonthOffset);
-  const days = ['א','ב','ג','ד','ה','ו','ש'];
+  const days = ['א','ב','ג','ד','ה','ו','ש']; // א=ראשון
   const firstDay = new Date(year, month, 1).getDay();
   let cells = [];
   for (let i=0; i<firstDay; i++) cells.push(null);
@@ -592,7 +592,7 @@ function renderCustomer() {
 function renderMonthCalendar() {
   const today = formatDate(new Date());
   const { year, month, daysInMonth, monthName } = getMonthDates(state.calendarWeekOffset);
-  const days = ['א','ב','ג','ד','ה','ו','ש'];
+  const days = ['א','ב','ג','ד','ה','ו','ש']; // א=ראשון
   // יום ראשון של החודש (0=ראשון)
   const firstDay = new Date(year, month, 1).getDay();
   // בונה גריד: ריקים לפני, אחר-כך ימים
