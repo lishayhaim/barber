@@ -84,6 +84,19 @@ let state = {
   resetPasswordId: null, resetPasswordValue: ''
 };
 
+// שחזור סשן אחרי רענון
+const savedUser = localStorage.getItem('barber_session');
+if (savedUser) {
+  try {
+    const u = JSON.parse(savedUser);
+    state.user = u;
+    state.view = u.role === 'owner' ? 'owner' : 'customer';
+  } catch(e) { localStorage.removeItem('barber_session'); }
+}
+
+function saveSession(user) { localStorage.setItem('barber_session', JSON.stringify(user)); }
+function clearSession() { localStorage.removeItem('barber_session'); }
+
 function formatPhone(p) {
   if (!p) return '';
   const d = p.replace(/\D/g,'');
@@ -649,7 +662,7 @@ function handleAction(e) {
     if (username==='admin') { state.error='שם משתמש זה שמור'; render(); return; }
     doRegister(name, phone, username, password);
   }
-  else if (action==='logout') { state.user=null; state.view='login'; state.form={}; state.selectedDate=null; state.appointments=[]; render(); }
+  else if (action==='logout') { state.user=null; state.view='login'; state.form={}; state.selectedDate=null; state.appointments=[]; clearSession(); render(); }
   else if (action==='owner-tab') {
     state.ownerTab=e.currentTarget.dataset.tab;
     render();
@@ -756,13 +769,13 @@ function handleAction(e) {
 
 // ===== Async helpers =====
 async function doLoginOwner() {
-  try { const [a,v]=await Promise.all([getAppointments().catch(()=>[]),getAvailability().catch(()=>[])]); state.appointments=a; state.availability=v; state.user=OWNER; state.view='owner'; state.selectedDate=null; state.calendarWeekOffset=0; } catch { state.error='שגיאת חיבור'; } render();
+  try { const [a,v]=await Promise.all([getAppointments().catch(()=>[]),getAvailability().catch(()=>[])]); state.appointments=a; state.availability=v; state.user=OWNER; state.view='owner'; state.selectedDate=null; state.calendarWeekOffset=0; saveSession(OWNER); } catch { state.error='שגיאת חיבור'; } render();
 }
 async function doLoginCustomer(u,p) {
-  try { const users=await sbFetch(`users?username=eq.${encodeURIComponent(u)}&select=*`); if(users.length>0&&users[0].password===p){const [a,v]=await Promise.all([getAppointments(),getAvailability().catch(()=>[])]);state.appointments=a;state.availability=v;state.user=users[0];state.view='customer';state.selectedDate=null;state.calendarWeekOffset=0;state.selectedService=null;state.pendingTime=null;}else{state.error='שם משתמש או סיסמה שגויים';} } catch { state.error='שגיאת חיבור לשרת'; } render();
+  try { const users=await sbFetch(`users?username=eq.${encodeURIComponent(u)}&select=*`); if(users.length>0&&users[0].password===p){const [a,v]=await Promise.all([getAppointments(),getAvailability().catch(()=>[])]);state.appointments=a;state.availability=v;state.user=users[0];state.view='customer';state.selectedDate=null;state.calendarWeekOffset=0;state.selectedService=null;state.pendingTime=null; saveSession(users[0]);}else{state.error='שם משתמש או סיסמה שגויים';} } catch { state.error='שגיאת חיבור לשרת'; } render();
 }
 async function doRegister(name,phone,username,password) {
-  try { const ex=await sbFetch(`users?username=eq.${encodeURIComponent(username)}&select=id`); if(ex.length>0){state.error='שם המשתמש כבר קיים';render();return;} const nu=await createUser({name,phone,username,password}); const [a,v]=await Promise.all([getAppointments(),getAvailability().catch(()=>[])]); state.appointments=a;state.availability=v;state.user=nu[0];state.view='customer';state.selectedDate=null;state.calendarWeekOffset=0;state.selectedService=null;state.pendingTime=null; } catch(err){state.error=err.message||'שגיאה ביצירת חשבון';} render();
+  try { const ex=await sbFetch(`users?username=eq.${encodeURIComponent(username)}&select=id`); if(ex.length>0){state.error='שם המשתמש כבר קיים';render();return;} const nu=await createUser({name,phone,username,password}); const [a,v]=await Promise.all([getAppointments(),getAvailability().catch(()=>[])]); state.appointments=a;state.availability=v;state.user=nu[0];state.view='customer';state.selectedDate=null;state.calendarWeekOffset=0;state.selectedService=null;state.pendingTime=null; saveSession(nu[0]); } catch(err){state.error=err.message||'שגיאה ביצירת חשבון';} render();
 }
 async function doRefresh() {
   try { const [a,v]=await Promise.all([getAppointments(),getAvailability()]); state.appointments=a; state.availability=v; } catch {} render();
@@ -820,7 +833,19 @@ async function doDeleteUser(id, name) {
 
 // לוגים גם לפעולות לקוח - מובנים ב-helpers
 
-render();
+// אתחול — אם יש סשן שמור, טען נתונים אוטומטית
+async function init() {
+  render(); // הצג מיד (עם loading אם צריך)
+  if (state.user) {
+    try {
+      const [a, v] = await Promise.all([getAppointments(), getAvailability().catch(()=>[])]);
+      state.appointments = a;
+      state.availability = v;
+    } catch { clearSession(); state.user=null; state.view='login'; }
+    render();
+  }
+}
+init();
 
 // Event delegation
 document.addEventListener('click', function(e) {
