@@ -60,7 +60,14 @@ async function getAllUsers() { return sbFetch('users?select=*&order=created_at.d
 async function deleteUser(id) { return sbFetch(`users?id=eq.${id}`, { method: 'DELETE', prefer: 'return=minimal' }); }
 async function updateUserPassword(id, password) { return sbFetch(`users?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({password}), prefer: 'return=minimal' }); }
 async function getLogs() { return sbFetch('logs?select=*&order=created_at.desc&limit=100'); }
-async function addLog(action, details, username='') { return sbFetch('logs', { method: 'POST', body: JSON.stringify({action, details, username}) }).catch(()=>{}); }
+async function addLog(action, details, username='') {
+  try {
+    const result = await sbFetch('logs', { method: 'POST', body: JSON.stringify({action, details, username}) });
+    console.log('addLog success:', action, result);
+  } catch(err) {
+    console.error('addLog failed:', action, err.message);
+  }
+}
 
 function generateSlots() {
   const slots = [];
