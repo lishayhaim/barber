@@ -907,7 +907,12 @@ async function doLoadUsers() {
   render();
 }
 async function doLoadLogs() {
-  try { state.logs = await getLogs(); } catch(err) { state.error='שגיאה בטעינת לוגים'; }
+  try {
+    state.logs = await getLogs();
+    if (!state.logs.length) state.error = '';
+  } catch(err) {
+    state.error = 'שגיאה בטעינת לוגים: ' + (err.message||'בעיית חיבור');
+  }
   render();
 }
 async function doResetPassword(id, password, username, name) {
