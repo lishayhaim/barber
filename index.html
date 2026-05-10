@@ -779,7 +779,7 @@ function handleAction(e) {
   else if (action==='approve-appt') {
     const id=e.currentTarget.dataset.id;
     const note=document.getElementById('note-'+id)?.value||'';
-    doUpdateApptStatus(id,'approved',note||'התור שלך אושר! נשמח לראותך.');
+    doUpdateApptStatus(id,'approved',note||'');
   }
   else if (action==='reject-appt') {
     const id=e.currentTarget.dataset.id;
@@ -946,7 +946,7 @@ async function doUpdateApptStatus(id, status, notification) {
       await addLog('אישור תור', `${apptInfo?.customer_name||''} | ${apptInfo?.date||''} ${apptInfo?.time||''} | ${notification}`, apptInfo?.username||'').catch(()=>{});
       if (apptInfo?.customer_phone) {
         const fd = formatDisplayDate(new Date(apptInfo.date+'T12:00:00'));
-        sendWhatsApp(apptInfo.customer_phone, `✅ *Lishay Barber*\nהתור שלך *אושר!*\n📅 ${fd.date} ${fd.month} בשעה ${apptInfo.time}\n${notification ? '💬 ' + notification : ''}\nנשמח לראותך! 💈`);
+        sendWhatsApp(apptInfo.customer_phone, `✅ *Lishay Barber*\nהתור שלך *אושר!*\n📅 ${fd.date} ${fd.month} בשעה ${apptInfo.time}\n${notification ? '💬 ' + notification + '\n' : ''}😊 נשמח לראותך!`);
       }
     }
   } catch(err) { state.error='שגיאה: '+err.message; }
