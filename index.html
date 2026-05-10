@@ -947,6 +947,32 @@ async function init() {
 }
 init();
 
+// Polling — בודק עדכונים כל 15 שניות כשהמשתמש מחובר
+setInterval(async () => {
+  if (!state.user || state.view === 'login') return;
+  try {
+    const [appts, avail] = await Promise.all([
+      getAppointments(),
+      getAvailability().catch(() => state.availability)
+    ]);
+    // בדוק אם יש שינויים בסטטוס תורים של הלקוח
+    if (state.view === 'customer') {
+      const changed = appts.some(a => {
+        const old = state.appointments.find(x => x.id === a.id);
+        return old && old.status !== a.status;
+      });
+      state.appointments = appts;
+      state.availability = avail;
+      if (changed) render(); // רנדר מחדש רק אם היה שינוי
+    } else {
+      // עבור admin — עדכן בשקט
+      state.appointments = appts;
+      state.availability = avail;
+      render();
+    }
+  } catch {}
+}, 10000);
+
 // Event delegation
 document.addEventListener('click', function(e) {
   const btn = e.target.closest('[data-action]');
