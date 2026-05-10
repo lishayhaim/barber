@@ -910,7 +910,17 @@ async function doBooking(date,time,serviceId,service) {
 }
 async function doCancelAppt(id) {
   const a=state.appointments.find(x=>x.id===id);
-  try { await deleteAppointment(id); state.appointments=state.appointments.filter(x=>x.id!==id); if(a) await addLog('ביטול תור', `${a.date} ${a.time}`, a.username||'').catch(()=>{}); } catch { state.error='שגיאה בביטול'; } render();
+  try {
+    await deleteAppointment(id);
+    state.appointments=state.appointments.filter(x=>x.id!==id);
+    if(a) {
+      await addLog('ביטול תור', `${a.date} ${a.time}`, a.username||'').catch(()=>{});
+      if(OWNER_PHONE) {
+        const fd=formatDisplayDate(new Date(a.date+'T12:00:00'));
+        sendWhatsApp(OWNER_PHONE, `🚫 *ביטול תור*\n👤 ${a.customer_name}\n📞 ${formatPhone(a.customer_phone)}\n📅 ${fd.date} ${fd.month} בשעה ${a.time}\nהשעה חזרה להיות פנויה`);
+      }
+    }
+  } catch { state.error='שגיאה בביטול'; } render();
 }
 async function doReschedule(a,newDate,newTime) {
   try { await deleteAppointment(a.id); const appt=await createAppointment({date:newDate,time:newTime,username:a.username,customer_name:a.customer_name,customer_phone:a.customer_phone,service:a.service}); state.appointments=state.appointments.filter(x=>x.id!==a.id); state.appointments.push(appt[0]); state.rescheduleAppt=null;state.rescheduleDate=null;state.rescheduleTime=null; } catch { state.error='שגיאה בשינוי מועד'; } render();
