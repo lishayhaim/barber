@@ -114,14 +114,22 @@ function getMonthDates(monthOffset) {
     monthName: ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'][month] };
 }
 
-// נשאר לתאימות עם מקומות אחרים שמשתמשים בו (reschedule)
+// מחזיר 7 ימים החל מיום ראשון של השבוע
 function getDates(weekOffset) {
   const today = new Date(); today.setHours(0,0,0,0);
-  const start = new Date(today); start.setDate(today.getDate() + weekOffset * 7);
-  return Array.from({length:7}, (_,i) => { const d=new Date(start); d.setDate(start.getDate()+i); return d; });
+  // מצא את יום ראשון של השבוע הנוכחי
+  const dayOfWeek = today.getDay(); // 0=ראשון
+  const sunday = new Date(today);
+  sunday.setDate(today.getDate() - dayOfWeek + weekOffset * 7);
+  return Array.from({length:7}, (_,i) => { const d=new Date(sunday); d.setDate(sunday.getDate()+i); return d; });
 }
 
-function formatDate(d) { return d.toISOString().split('T')[0]; }
+function formatDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
 function formatDisplayDate(d) {
   return {
     day: ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][d.getDay()],
