@@ -55,6 +55,7 @@ async function deleteAppointment(id) { return sbFetch(`appointments?id=eq.${id}`
 async function getAvailability() { return sbFetch('availability?select=*'); }
 async function addAvailability(date, time) { return sbFetch('availability', { method: 'POST', body: JSON.stringify({date, time}) }); }
 async function removeAvailability(date, time) { return sbFetch(`availability?date=eq.${date}&time=eq.${time}`, { method: 'DELETE', prefer: 'return=minimal' }); }
+async function updateAppointmentStatus(id, status, notification='') { return sbFetch(`appointments?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({status, notification}), prefer: 'return=minimal' }); }
 async function getAllUsers() { return sbFetch('users?select=*&order=created_at.desc'); }
 async function deleteUser(id) { return sbFetch(`users?id=eq.${id}`, { method: 'DELETE', prefer: 'return=minimal' }); }
 async function updateUserPassword(id, password) { return sbFetch(`users?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({password}), prefer: 'return=minimal' }); }
@@ -81,7 +82,8 @@ let state = {
   selectedService: null, bookingStep: 'date',
   rescheduleAppt: null, rescheduleWeekOffset: 0,
   availMonthOffset: 0, availSelectedDate: null,
-  resetPasswordId: null, resetPasswordValue: ''
+  resetPasswordId: null, resetPasswordValue: '',
+  seenNotifications: JSON.parse(localStorage.getItem('barber_seen_notifs')||'[]')
 };
 
 // שחזור סשן אחרי רענון
@@ -144,6 +146,7 @@ function render() {
     const map={'login-user':'username','login-pass':'password','reg-name':'name','reg-phone':'phone','reg-user':'username','reg-pass':'password'};
     if (map[e.target.id]) state.form[map[e.target.id]] = e.target.value;
     if (e.target.id && e.target.id.startsWith('reset-pw-')) state.resetPasswordValue = e.target.value;
+    // note inputs don't need state - read directly from DOM on action
   }));
 }
 
@@ -454,30 +457,53 @@ function renderRescheduleModal() {
 
 function renderOwnerList() {
   const today = formatDate(new Date());
-  const upcoming = state.appointments.filter(a=>a.date>=today).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  const upcoming = state.appointments.filter(a=>a.date>=today).sort((a,b)=>{
+    if(a.status==='pending'&&b.status!=='pending') return -1;
+    if(a.status!=='pending'&&b.status==='pending') return 1;
+    return (a.date+a.time).localeCompare(b.date+b.time);
+  });
   if (!upcoming.length) return `<div style="text-align:center;color:rgba(255,255,255,0.2);padding:3rem;font-size:14px;">אין תורים קרובים</div>`;
-  return upcoming.map(a => {
+  const pending = upcoming.filter(a=>a.status==='pending');
+  const others = upcoming.filter(a=>a.status!=='pending');
+  const renderAppt = (a) => {
     const fd=formatDisplayDate(new Date(a.date+'T12:00:00'));
     const svc=SERVICES.find(s=>s.id===a.service);
-    return `<div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:14px;padding:12px 14px;margin-bottom:10px;">
-      <div style="display:flex;align-items:center;gap:12px;">
+    const isPending=a.status==='pending';
+    const statusColor=isPending?'#ff9800':a.status==='approved'?'#4caf50':'rgba(255,255,255,0.3)';
+    const statusText=isPending?'⏳ ממתין לאישור':a.status==='approved'?'✓ אושר':'✗ נדחה';
+    return `<div style="background:${isPending?'rgba(255,152,0,0.06)':'rgba(255,255,255,0.04)'};border:${isPending?'1px solid rgba(255,152,0,0.3)':'0.5px solid rgba(255,255,255,0.08)'};border-radius:14px;padding:12px 14px;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
         <div style="background:rgba(201,168,76,0.12);border-radius:10px;padding:8px 10px;text-align:center;min-width:50px;">
           <div style="font-size:20px;font-weight:600;color:#c9a84c;line-height:1;">${fd.date}</div>
           <div style="font-size:10px;color:rgba(201,168,76,0.6);margin-top:1px;">${fd.month}</div>
         </div>
         <div style="flex:1;">
           <div style="font-size:14px;font-weight:500;color:#fff;">${a.customer_name}</div>
-          <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:2px;">📞 ${formatPhone(a.customer_phone)}</div>
-          ${svc?`<div style="font-size:11px;color:rgba(201,168,76,0.7);margin-top:2px;">✂️ ${svc.name} — ₪${svc.price}</div>`:''}
+          <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:1px;">📞 ${formatPhone(a.customer_phone)}</div>
+          ${svc?`<div style="font-size:11px;color:rgba(201,168,76,0.7);margin-top:1px;">✂️ ${svc.name} — ₪${svc.price}</div>`:''}
         </div>
-        <div style="font-size:17px;font-weight:600;color:#c9a84c;">${a.time}</div>
+        <div style="text-align:right;">
+          <div style="font-size:16px;font-weight:600;color:#c9a84c;">${a.time}</div>
+          <div style="font-size:10px;color:${statusColor};margin-top:3px;">${statusText}</div>
+        </div>
       </div>
-      <div style="display:flex;gap:8px;margin-top:10px;">
-        <button data-action="owner-reschedule" data-id="${a.id}" style="flex:1;padding:7px;background:rgba(255,255,255,0.07);border:0.5px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.8);border-radius:8px;font-size:12px;cursor:pointer;pointer-events:all;">📅 שנה מועד</button>
-        <button data-action="owner-cancel" data-id="${a.id}" style="flex:1;padding:7px;background:rgba(220,50,50,0.1);border:0.5px solid rgba(220,50,50,0.25);color:#ff8080;border-radius:8px;font-size:12px;cursor:pointer;pointer-events:all;">🗑 בטל תור</button>
+      ${isPending?`
+      <div style="margin-bottom:8px;">
+        <input id="note-${a.id}" type="text" placeholder="הוסף הערה ללקוח (אופציונלי)" style="width:100%;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.15);border-radius:8px;padding:7px 10px;color:#fff;font-size:12px;outline:none;">
       </div>
+      <div style="display:flex;gap:6px;">
+        <button data-action="approve-appt" data-id="${a.id}" style="flex:1;padding:8px;background:rgba(76,175,80,0.15);border:0.5px solid rgba(76,175,80,0.4);color:#4caf50;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">✓ אשר תור</button>
+        <button data-action="reject-appt" data-id="${a.id}" style="flex:1;padding:8px;background:rgba(244,67,54,0.12);border:0.5px solid rgba(244,67,54,0.3);color:#f44336;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">✗ דחה תור</button>
+        <button data-action="owner-reschedule" data-id="${a.id}" style="padding:8px 10px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.6);border-radius:8px;font-size:12px;cursor:pointer;">📅</button>
+      </div>`:`
+      <div style="display:flex;gap:6px;">
+        <button data-action="owner-reschedule" data-id="${a.id}" style="flex:1;padding:7px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);border-radius:8px;font-size:12px;cursor:pointer;">📅 שנה מועד</button>
+        <button data-action="owner-cancel" data-id="${a.id}" style="flex:1;padding:7px;background:rgba(220,50,50,0.08);border:0.5px solid rgba(220,50,50,0.2);color:#ff8080;border-radius:8px;font-size:12px;cursor:pointer;">🗑 בטל</button>
+      </div>`}
     </div>`;
-  }).join('');
+  };
+  return (pending.length?`<div style="font-size:11px;color:#ff9800;margin-bottom:8px;letter-spacing:0.5px;">⏳ ממתינים לאישור (${pending.length})</div>`+pending.map(renderAppt).join(''):'')
+    +(others.length?`<div style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:8px;margin-top:${pending.length?'12px':'0'};letter-spacing:0.5px;">תורים קרובים</div>`+others.map(renderAppt).join(''):'');
 }
 
 function renderCustomer() {
@@ -500,23 +526,42 @@ function renderCustomer() {
       <div style="font-size:32px;margin-bottom:6px;">✅</div>
       <div style="font-size:16px;font-weight:700;color:#1a6b30;white-space:pre-line;">${state.success}</div>
     </div>`:''}
+    ${(()=>{
+      // הודעות קופצות על תורים שאושרו/נדחו
+      const notifications = myAppts.filter(a=>a.notification&&!state.seenNotifications?.includes(a.id));
+      return notifications.map(a=>{
+        const isApproved=a.status==='approved'; const isRejected=a.status==='rejected';
+        if(!isApproved&&!isRejected) return '';
+        const fd=formatDisplayDate(new Date(a.date+'T12:00:00'));
+        return `<div style="margin:12px 12px 0;background:${isApproved?'#e8f8ed':'#fde8e8'};border:1.5px solid ${isApproved?'#4caf50':'#f44336'};border-radius:14px;padding:16px;text-align:center;">
+          <div style="font-size:28px;margin-bottom:6px;">${isApproved?'✅':'❌'}</div>
+          <div style="font-size:15px;font-weight:700;color:${isApproved?'#1a6b30':'#b71c1c'};">${isApproved?'התור אושר!':'התור נדחה'}</div>
+          <div style="font-size:13px;color:${isApproved?'#2e7d32':'#c62828'};margin-top:4px;">${fd.date} ${fd.month} בשעה ${a.time}</div>
+          ${a.notification?`<div style="font-size:12px;margin-top:6px;color:rgba(0,0,0,0.5);">${a.notification}</div>`:''}
+          <button data-action="dismiss-notification" data-id="${a.id}" style="margin-top:10px;background:rgba(0,0,0,0.08);border:none;padding:5px 16px;border-radius:8px;font-size:12px;cursor:pointer;">הבנתי</button>
+        </div>`;
+      }).join('');
+    })()}
     ${myAppts.length>0?`
     <div style="padding:1rem 1rem 0;">
       <div style="font-size:11px;color:rgba(26,26,46,0.45);margin-bottom:8px;letter-spacing:0.5px;">התורים שלי</div>
-      ${myAppts.slice(0,2).map(a=>{
+      ${myAppts.slice(0,5).map(a=>{
         const fd=formatDisplayDate(new Date(a.date+'T12:00:00'));
         const svc=SERVICES.find(s=>s.id===a.service);
-        return `<div style="background:#fff;border:0.5px solid rgba(26,26,46,0.1);border-right:3px solid #c9a84c;border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">
-          <div style="font-size:26px;font-weight:600;color:#c9a84c;min-width:36px;text-align:center;line-height:1;">${fd.date}</div>
-          <div style="flex:1;">
-            <div style="font-size:14px;color:#1a1a2e;font-weight:500;">${fd.month} | יום ${fd.day}'</div>
-            <div style="font-size:12px;color:rgba(26,26,46,0.5);margin-top:2px;">⏰ שעה ${a.time}</div>
-            ${svc?`<div style="font-size:11px;color:#a07828;margin-top:2px;">✂️ ${svc.name} — ₪${svc.price}</div>`:''}
+        const statusColor=a.status==='approved'?'#4caf50':a.status==='rejected'?'#f44336':'#ff9800';
+        const statusText=a.status==='approved'?'אושר ✓':a.status==='rejected'?'נדחה ✗':'ממתין לאישור ⏳';
+        return `<div style="background:#fff;border:0.5px solid rgba(26,26,46,0.1);border-right:3px solid ${statusColor};border-radius:12px;padding:12px 14px;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="font-size:22px;font-weight:600;color:${statusColor};min-width:32px;text-align:center;line-height:1;">${fd.date}</div>
+            <div style="flex:1;">
+              <div style="font-size:13px;color:#1a1a2e;font-weight:500;">${fd.month} | שעה ${a.time}</div>
+              ${svc?`<div style="font-size:11px;color:#a07828;margin-top:1px;">✂️ ${svc.name} — ₪${svc.price}</div>`:''}
+              <div style="font-size:11px;font-weight:600;color:${statusColor};margin-top:3px;">${statusText}</div>
+            </div>
+            ${a.status!=='rejected'?`<button data-action="cancel-appt" data-id="${a.id}" style="background:rgba(220,50,50,0.07);border:0.5px solid rgba(220,50,50,0.2);color:#c03030;padding:5px 10px;border-radius:8px;font-size:11px;cursor:pointer;">ביטול</button>`:''}
           </div>
-          <button data-action="cancel-appt" data-id="${a.id}" style="background:rgba(220,50,50,0.07);border:0.5px solid rgba(220,50,50,0.2);color:#c03030;padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;">ביטול</button>
         </div>`;
       }).join('')}
-
     </div>`:''}
     <div style="padding:1rem;flex:1;">
       ${state.selectedService ? `
@@ -671,6 +716,22 @@ function handleAction(e) {
     else doRefresh();
   }
   else if (action==='refresh-appts') { doRefresh(); }
+  else if (action==='approve-appt') {
+    const id=e.currentTarget.dataset.id;
+    const note=document.getElementById('note-'+id)?.value||'';
+    doUpdateApptStatus(id,'approved',note||'התור שלך אושר! נשמח לראותך.');
+  }
+  else if (action==='reject-appt') {
+    const id=e.currentTarget.dataset.id;
+    const note=document.getElementById('note-'+id)?.value||'';
+    doUpdateApptStatus(id,'rejected',note||'מצטערים, לא ניתן לאשר את התור בזמן זה.');
+  }
+  else if (action==='dismiss-notification') {
+    const id=e.currentTarget.dataset.id;
+    if(!state.seenNotifications.includes(id)) state.seenNotifications.push(id);
+    localStorage.setItem('barber_seen_notifs', JSON.stringify(state.seenNotifications));
+    render();
+  }
   else if (action==='reset-pw') {
     state.resetPasswordId=e.currentTarget.dataset.id;
     state.resetPasswordValue='';
@@ -781,7 +842,7 @@ async function doRefresh() {
   try { const [a,v]=await Promise.all([getAppointments(),getAvailability()]); state.appointments=a; state.availability=v; } catch {} render();
 }
 async function doBooking(date,time,serviceId,service) {
-  try { const appt=await createAppointment({date,time,username:state.user.username,customer_name:state.user.name,customer_phone:state.user.phone,service:serviceId}); state.appointments.push(appt[0]); const fd=formatDisplayDate(new Date(date+'T12:00:00')); state.success=`✓ התור נקבע בהצלחה!\n${fd.date} ${fd.month} בשעה ${time}\n${service.name} — ₪${service.price}`; state.bookingStep='date';state.pendingTime=null;state.selectedService=null;state.selectedDate=null;state.calendarWeekOffset=0; await addLog('קביעת תור', `${date} ${time} | ${service.name}`, state.user.username).catch(()=>{}); } catch(err){state.error='שגיאה בקביעת תור: '+(err.message||'');} render();
+  try { const appt=await createAppointment({date,time,username:state.user.username,customer_name:state.user.name,customer_phone:state.user.phone,service:serviceId,status:'pending',notification:''}); state.appointments.push(appt[0]); const fd=formatDisplayDate(new Date(date+'T12:00:00')); state.success=`⏳ קיבלנו את בקשתך!\nהתור ב-${fd.date} ${fd.month} שעה ${time}\n${service.name} — ₪${service.price}\nהתור במצב המתנה לאישור המספר`; state.bookingStep='date';state.pendingTime=null;state.selectedService=null;state.selectedDate=null;state.calendarWeekOffset=0; await addLog('קביעת תור', `${date} ${time} | ${service.name}`, state.user.username).catch(()=>{}); } catch(err){state.error='שגיאה בקביעת תור: '+(err.message||'');} render();
 }
 async function doCancelAppt(id) {
   const a=state.appointments.find(x=>x.id===id);
@@ -801,6 +862,15 @@ async function doAvailOpenAll(date) {
 async function doAvailCloseAll(date) {
   const toRemove=state.availability.filter(a=>a.date===date&&!state.appointments.some(ap=>ap.date===date&&ap.time===a.time));
   try { for(const a of toRemove){await removeAvailability(a.date,a.time);} state.availability=state.availability.filter(a=>!(a.date===date&&toRemove.some(r=>r.time===a.time))); } catch(err){state.error='שגיאה: '+err.message;} render();
+}
+async function doUpdateApptStatus(id, status, notification) {
+  try {
+    await updateAppointmentStatus(id, status, notification);
+    const idx = state.appointments.findIndex(a=>a.id===id);
+    if(idx>=0) { state.appointments[idx].status=status; state.appointments[idx].notification=notification; }
+    await addLog(status==='approved'?'אישור תור':'דחיית תור', notification, '').catch(()=>{});
+  } catch(err) { state.error='שגיאה: '+err.message; }
+  render();
 }
 async function doLoadUsers() {
   try { state.users = await getAllUsers(); } catch(err) { state.error='שגיאה בטעינת לקוחות'; }
