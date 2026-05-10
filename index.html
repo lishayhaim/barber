@@ -956,7 +956,9 @@ async function doUpdateApptStatus(id, status, notification) {
       await addLog('אישור תור', `${apptInfo?.customer_name||''} | ${apptInfo?.date||''} ${apptInfo?.time||''} | ${notification}`, apptInfo?.username||'').catch(()=>{});
       if (apptInfo?.customer_phone) {
         const fd = formatDisplayDate(new Date(apptInfo.date+'T12:00:00'));
-        sendWhatsApp(apptInfo.customer_phone, `✅ *Lishay Barber*\nהתור שלך *אושר!*\n📅 ${fd.date} ${fd.month} בשעה ${apptInfo.time}\n${notification ? '💬 ' + notification + '\n' : ''}😊 נשמח לראותך!`);
+        const dateFormatted = apptInfo.date.split('-').reverse().join('/');
+        const note = notification && notification !== 'התור שלך אושר! נשמח לראותך.' ? '💬 ' + notification + '\n' : '';
+        sendWhatsApp(apptInfo.customer_phone, `✅ *Lishay Barber*\nהתור שלך *אושר!*\n📅 ${dateFormatted} בשעה ${apptInfo.time}\n${note}😊 נשמח לראותך!`);
       }
     }
   } catch(err) { state.error='שגיאה: '+err.message; }
