@@ -907,10 +907,13 @@ async function doLoadUsers() {
   render();
 }
 async function doLoadLogs() {
+  console.log('doLoadLogs called');
   try {
-    state.logs = await getLogs();
-    if (!state.logs.length) state.error = '';
+    const result = await getLogs();
+    console.log('logs result:', result);
+    state.logs = result;
   } catch(err) {
+    console.error('logs error:', err);
     state.error = 'שגיאה בטעינת לוגים: ' + (err.message||'בעיית חיבור');
   }
   render();
