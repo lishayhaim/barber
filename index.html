@@ -27,19 +27,21 @@ const GREEN_API_TOKEN = 'e4ee7616419246e1a347dcfc00537a2a8fc28979f11f472f9d';
 const OWNER_PHONE = '0586022225'; // מספר טלפון של בעל המספרה
 
 async function sendWhatsApp(phone, message) {
-  if (!phone) return;
-  // נקה את המספר — השאר רק ספרות
+  if (!phone) { console.log('WA: no phone'); return; }
   const clean = phone.replace(/\D/g, '');
-  // הוסף קידומת ישראל אם חסרה
   const intl = clean.startsWith('972') ? clean : '972' + clean.replace(/^0/, '');
   const chatId = intl + '@c.us';
+  const url = `https://api.green-api.com/waInstance${GREEN_API_INSTANCE}/sendMessage/${GREEN_API_TOKEN}`;
+  console.log('WA sending to:', chatId, '| msg:', message.substring(0,30));
   try {
-    await fetch(`https://api.green-api.com/waInstance${GREEN_API_INSTANCE}/sendMessage/${GREEN_API_TOKEN}`, {
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chatId, message })
     });
-  } catch(err) { console.error('WhatsApp error:', err); }
+    const data = await res.json();
+    console.log('WA response:', res.status, data);
+  } catch(err) { console.error('WA error:', err.message); }
 }
 
 const OWNER = { username: 'admin', password: '1234', name: 'בעל המספרה', role: 'owner' };
@@ -926,11 +928,27 @@ async function doAvailCloseAll(date) {
   try { for(const a of toRemove){await removeAvailability(a.date,a.time);} state.availability=state.availability.filter(a=>!(a.date===date&&toRemove.some(r=>r.time===a.time))); } catch(err){state.error='שגיאה: '+err.message;} render();
 }
 async function doUpdateApptStatus(id, status, notification) {
+  const apptInfo = state.appointments.find(a=>a.id===id);
   try {
-    await updateAppointmentStatus(id, status, notification);
-    const idx = state.appointments.findIndex(a=>a.id===id);
-    if(idx>=0) { state.appointments[idx].status=status; state.appointments[idx].notification=notification; }
-    const apptInfo = state.appointments.find(a=>a.id===id); await addLog(status==='approved'?'אישור תור':'דחיית תור', `${apptInfo?.customer_name||''} | ${apptInfo?.date||''} ${apptInfo?.time||''} | ${notification}`, apptInfo?.username||'').catch(()=>{});
+    if (status === 'rejected') {
+      // מחק את התור — השעה חוזרת להיות פנויה
+      await deleteAppointment(id);
+      state.appointments = state.appointments.filter(a=>a.id!==id);
+      await addLog('דחיית תור', `${apptInfo?.customer_name||''} | ${apptInfo?.date||''} ${apptInfo?.time||''} | ${notification}`, apptInfo?.username||'').catch(()=>{});
+      if (apptInfo?.customer_phone) {
+        const fd = formatDisplayDate(new Date(apptInfo.date+'T12:00:00'));
+        sendWhatsApp(apptInfo.customer_phone, `❌ *Lishay Barber*\nמצטערים, התור *לא אושר*\n📅 ${fd.date} ${fd.month} בשעה ${apptInfo.time}\n${notification ? '💬 ' + notification : ''}\nניתן לקבוע תור אחר באפליקציה`);
+      }
+    } else {
+      await updateAppointmentStatus(id, status, notification);
+      const idx = state.appointments.findIndex(a=>a.id===id);
+      if(idx>=0) { state.appointments[idx].status=status; state.appointments[idx].notification=notification; }
+      await addLog('אישור תור', `${apptInfo?.customer_name||''} | ${apptInfo?.date||''} ${apptInfo?.time||''} | ${notification}`, apptInfo?.username||'').catch(()=>{});
+      if (apptInfo?.customer_phone) {
+        const fd = formatDisplayDate(new Date(apptInfo.date+'T12:00:00'));
+        sendWhatsApp(apptInfo.customer_phone, `✅ *Lishay Barber*\nהתור שלך *אושר!*\n📅 ${fd.date} ${fd.month} בשעה ${apptInfo.time}\n${notification ? '💬 ' + notification : ''}\nנשמח לראותך! 💈`);
+      }
+    }
   } catch(err) { state.error='שגיאה: '+err.message; }
   render();
 }
