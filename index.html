@@ -21,6 +21,27 @@ button { font-family: inherit; }
 const SUPABASE_URL = 'https://ptfhrfmwugoxuwzrbiov.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0ZmhyZm13dWdveHV3enJiaW92Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNDM3NjIsImV4cCI6MjA5MzkxOTc2Mn0.bg5R4FCyNgl__Qs5SEOUnRKO2jurPb63h_EWHI7kfrg';
 
+
+const GREEN_API_INSTANCE = '7107615174';
+const GREEN_API_TOKEN = 'e4ee7616419246e1a347dcfc00537a2a8fc28979f11f472f9d';
+const OWNER_PHONE = '0586022225'; // מספר טלפון של בעל המספרה
+
+async function sendWhatsApp(phone, message) {
+  if (!phone) return;
+  // נקה את המספר — השאר רק ספרות
+  const clean = phone.replace(/\D/g, '');
+  // הוסף קידומת ישראל אם חסרה
+  const intl = clean.startsWith('972') ? clean : '972' + clean.replace(/^0/, '');
+  const chatId = intl + '@c.us';
+  try {
+    await fetch(`https://api.green-api.com/waInstance${GREEN_API_INSTANCE}/sendMessage/${GREEN_API_TOKEN}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId, message })
+    });
+  } catch(err) { console.error('WhatsApp error:', err); }
+}
+
 const OWNER = { username: 'admin', password: '1234', name: 'בעל המספרה', role: 'owner' };
 const WORKING_HOURS = { start: 9, end: 20 };
 const SLOT_DURATION = 75;
@@ -879,7 +900,11 @@ async function doRefresh() {
   try { const [a,v]=await Promise.all([getAppointments(),getAvailability()]); state.appointments=a; state.availability=v; } catch {} render();
 }
 async function doBooking(date,time,serviceId,service) {
-  try { const appt=await createAppointment({date,time,username:state.user.username,customer_name:state.user.name,customer_phone:state.user.phone,service:serviceId,status:'pending',notification:''}); state.appointments.push(appt[0]); const fd=formatDisplayDate(new Date(date+'T12:00:00')); state.success=`⏳ קיבלנו את בקשתך!\nהתור ב-${fd.date} ${fd.month} שעה ${time}\n${service.name} — ₪${service.price}\nהתור **במצב המתנה** לאישור הספר`; state.bookingStep='date';state.pendingTime=null;state.selectedService=null;state.selectedDate=null;state.calendarWeekOffset=0; await addLog('קביעת תור', `${date} ${time} | ${service.name}`, state.user.username).catch(()=>{}); } catch(err){state.error='שגיאה בקביעת תור: '+(err.message||'');} render();
+  try { const appt=await createAppointment({date,time,username:state.user.username,customer_name:state.user.name,customer_phone:state.user.phone,service:serviceId,status:'pending',notification:''}); state.appointments.push(appt[0]); const fd=formatDisplayDate(new Date(date+'T12:00:00')); state.success=`⏳ קיבלנו את בקשתך!\nהתור ב-${fd.date} ${fd.month} שעה ${time}\n${service.name} — ₪${service.price}\nהתור **במצב המתנה** לאישור הספר`; state.bookingStep='date';state.pendingTime=null;state.selectedService=null;state.selectedDate=null;state.calendarWeekOffset=0; await addLog('קביעת תור', `${date} ${time} | ${service.name}`, state.user.username).catch(()=>{});
+    // שלח WhatsApp ללקוח
+    sendWhatsApp(state.user.phone, `✂️ *Lishay Barber*\nקיבלנו את בקשתך לתור!\n📅 ${fd.date} ${fd.month} בשעה ${time}\n✂️ ${service.name}\nהתור *ממתין לאישור* הספר ⏳\nנעדכן אותך בהקדם!`);
+    // שלח התראה לבעל המספרה
+    if (OWNER_PHONE) sendWhatsApp(OWNER_PHONE, `🔔 *בקשת תור חדשה!*\n👤 ${state.user.name}\n📞 ${state.user.phone}\n📅 ${date} בשעה ${time}\n✂️ ${service.name}\nהיכנס לאפליקציה לאישור`); } catch(err){state.error='שגיאה בקביעת תור: '+(err.message||'');} render();
 }
 async function doCancelAppt(id) {
   const a=state.appointments.find(x=>x.id===id);
