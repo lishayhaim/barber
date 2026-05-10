@@ -432,6 +432,7 @@ function renderOwnerLogs() {
   </div>
   ${logs.map(l => {
     const dt = new Date(l.created_at);
+    dt.setHours(dt.getHours() + 3);
     const dateStr = `${dt.getDate()}/${dt.getMonth()+1}/${dt.getFullYear()} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
     const icons = {'קביעת תור':'📅','ביטול תור':'❌','שינוי מועד':'🔄','מחיקת לקוח':'🗑','איפוס סיסמה':'🔑','הרשמה':'👤','כניסה':'🔐'};
     const icon = Object.keys(icons).find(k=>l.action.includes(k)) ? icons[Object.keys(icons).find(k=>l.action.includes(k))] : '📋';
