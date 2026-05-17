@@ -236,6 +236,9 @@ function render() {
   if (state.view==='login') app.innerHTML = renderLogin();
   else if (state.view==='owner') app.innerHTML = renderOwner();
   else if (state.view==='customer') app.innerHTML = renderCustomer();
+  // Footer
+  const footer = `<div style="text-align:center;padding:10px 0 calc(env(safe-area-inset-bottom) + 10px);font-size:11px;color:rgba(255,255,255,0.2);">powered by <a href="https://peletor.co.il" target="_blank" style="color:rgba(255,255,255,0.25);text-decoration:none;">Peletor</a> · <a href="https://peletor.co.il" target="_blank" style="color:rgba(255,255,255,0.2);text-decoration:none;">peletor.co.il</a></div>`;
+  app.insertAdjacentHTML('beforeend', footer);
   document.querySelectorAll('input').forEach(inp => inp.addEventListener('input', e => {
     const map={'login-user':'username','login-pass':'password','reg-name':'name','reg-phone':'phone','reg-user':'username','reg-pass':'password'};
     if (map[e.target.id]) state.form[map[e.target.id]] = e.target.value;
