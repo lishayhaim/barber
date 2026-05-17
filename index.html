@@ -18,9 +18,9 @@ button { font-family: inherit; }
 <body>
 <div id="splash" style="position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:9999;opacity:1;transition:opacity 0.6s ease;">
   <div style="position:relative;display:inline-block;">
-    <img src="" id="splash-logo" style="width:240px;height:240px;border-radius:50%;object-fit:cover;display:block;" />
+    <img src="" id="splash-logo" style="width:240px;height:240px;border-radius:50%;object-fit:cover;display:block;opacity:0;transition:opacity 0.8s ease;" />
     <div id="splash-shimmer" style="position:absolute;inset:0;border-radius:50%;overflow:hidden;pointer-events:none;">
-      <div style="position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(105deg,transparent 20%,rgba(255,255,255,0.55) 50%,transparent 80%);transform:skewX(-15deg);animation:shimmer 1.8s ease forwards;animation-delay:1s;opacity:0;"></div>
+      <div style="position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(105deg,transparent 20%,rgba(255,255,255,0.55) 50%,transparent 80%);transform:skewX(-15deg);animation:shimmer 1.8s ease forwards;animation-delay:2s;opacity:0;"></div>
     </div>
   </div>
 </div>
@@ -273,13 +273,13 @@ function renderLogin() {
         <input id="reg-user" type="text" placeholder="username" autocomplete="username" style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 14px;color:#fff;outline:none;" value="${state.form.username||''}"></div>
         <div style="margin-bottom:1.75rem;"><label style="color:rgba(255,255,255,0.55);font-size:13.2px;display:block;margin-bottom:5px;">סיסמה</label>
         <input id="reg-pass" type="password" placeholder="••••••••" autocomplete="new-password" style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 14px;color:#fff;outline:none;" value="${state.form.password||''}"></div>
-        <button data-action="register" style="width:100%;padding:14px;background:${state.loading?'rgba(201,168,76,0.5)':'#c9a84c'};border:none;border-radius:10px;color:#1a1a2e;font-size:17.6px;font-weight:600;cursor:pointer;">${state.loading?'...':'הרשמה'}</button>
+        <button data-action="register" style="width:100%;padding:14px;background:${state.loading?'rgba(60,60,60,0.5)':'#2a2a2a'};border:none;border-radius:10px;color:#fff;font-size:17.6px;font-weight:600;cursor:pointer;">${state.loading?'...':'הרשמה'}</button>
       ` : `
         <div style="margin-bottom:14px;"><label style="color:rgba(255,255,255,0.55);font-size:13.2px;display:block;margin-bottom:5px;">שם משתמש</label>
         <input id="login-user" type="text" placeholder="username" autocomplete="username" style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 14px;color:#fff;outline:none;" value="${state.form.username||''}"></div>
         <div style="margin-bottom:1.75rem;"><label style="color:rgba(255,255,255,0.55);font-size:13.2px;display:block;margin-bottom:5px;">סיסמה</label>
         <input id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 14px;color:#fff;outline:none;" value="${state.form.password||''}"></div>
-        <button data-action="login" style="width:100%;padding:14px;background:${state.loading?'rgba(201,168,76,0.5)':'#c9a84c'};border:none;border-radius:10px;color:#fff;font-size:17.6px;font-weight:600;cursor:pointer;">${state.loading?'...':'כניסה'}</button>
+        <button data-action="login" style="width:100%;padding:14px;background:${state.loading?'rgba(60,60,60,0.5)':'#2a2a2a'};border:none;border-radius:10px;color:#fff;font-size:17.6px;font-weight:600;cursor:pointer;">${state.loading?'...':'כניסה'}</button>
       `}
     </div>
   </div>`;
@@ -297,7 +297,7 @@ function renderOwner() {
           <img src="${IMG}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid rgba(201,168,76,0.5);">
           <div>
             <div style="font-size:12.1px;color:rgba(201,168,76,0.7);letter-spacing:1px;">Lishay Barber</div>
-            <div style="font-size:16.5px;font-weight:500;color:#c9a84c;margin-top:1px;">לוח בעל מספרה</div>
+            <div style="font-size:16.5px;font-weight:500;color:#ccc;margin-top:1px;">לוח בעל מספרה</div>
           </div>
         </div>
       </div>
@@ -306,7 +306,7 @@ function renderOwner() {
     </div>
     <div style="display:flex;gap:10px;padding:1rem;border-bottom:0.5px solid rgba(255,255,255,0.06);">
       <button data-action="stat-click" data-filter="today" style="flex:1;background:${state.listFilter==='today'?'rgba(201,168,76,0.2)':'rgba(201,168,76,0.1)'};border:${state.listFilter==='today'?'1px solid rgba(201,168,76,0.6)':'0.5px solid rgba(201,168,76,0.25)'};border-radius:12px;padding:12px;text-align:center;cursor:pointer;">
-        <div style="font-size:30.8px;font-weight:600;color:#c9a84c;">${totalToday}</div>
+        <div style="font-size:30.8px;font-weight:600;color:#ccc;">${totalToday}</div>
         <div style="font-size:12.1px;color:rgba(255,255,255,0.4);margin-top:3px;">תורים היום</div>
       </button>
       <button data-action="stat-click" data-filter="upcoming" style="flex:1;background:${state.listFilter==='upcoming'?'rgba(255,255,255,0.1)':'rgba(255,255,255,0.04)'};border:${state.listFilter==='upcoming'?'1px solid rgba(255,255,255,0.3)':'0.5px solid rgba(255,255,255,0.08)'};border-radius:12px;padding:12px;text-align:center;cursor:pointer;">
@@ -319,11 +319,11 @@ function renderOwner() {
       </button>
     </div>
     <div style="display:flex;border-bottom:0.5px solid rgba(255,255,255,0.06);position:sticky;top:64px;background:#000;z-index:9;overflow-x:auto;">
-      <button data-action="owner-tab" data-tab="calendar" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='calendar'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='calendar'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='calendar'?'#c9a84c':'rgba(255,255,255,0.4)'};font-size:12.1px;cursor:pointer;white-space:nowrap;">📅 יומן</button>
-      <button data-action="owner-tab" data-tab="list" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='list'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='list'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='list'?'#c9a84c':'rgba(255,255,255,0.4)'};font-size:12.1px;cursor:pointer;white-space:nowrap;">📋 רשימה</button>
-      <button data-action="owner-tab" data-tab="availability" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='availability'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='availability'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='availability'?'#c9a84c':'rgba(255,255,255,0.4)'};font-size:12.1px;cursor:pointer;white-space:nowrap;">⚙️ זמינות</button>
-      <button data-action="owner-tab" data-tab="customers" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='customers'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='customers'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='customers'?'#c9a84c':'rgba(255,255,255,0.4)'};font-size:12.1px;cursor:pointer;white-space:nowrap;">👥 לקוחות</button>
-      <button data-action="owner-tab" data-tab="logs" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='logs'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='logs'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='logs'?'#c9a84c':'rgba(255,255,255,0.4)'};font-size:12.1px;cursor:pointer;white-space:nowrap;">📜 לוגים</button>
+      <button data-action="owner-tab" data-tab="calendar" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='calendar'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='calendar'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='calendar'?'#ccc':'rgba(255,255,255,0.4)'};font-size:12.1px;cursor:pointer;white-space:nowrap;">📅 יומן</button>
+      <button data-action="owner-tab" data-tab="list" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='list'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='list'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='list'?'#ccc':'rgba(255,255,255,0.4)'};font-size:12.1px;cursor:pointer;white-space:nowrap;">📋 רשימה</button>
+      <button data-action="owner-tab" data-tab="availability" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='availability'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='availability'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='availability'?'#ccc':'rgba(255,255,255,0.4)'};font-size:12.1px;cursor:pointer;white-space:nowrap;">⚙️ זמינות</button>
+      <button data-action="owner-tab" data-tab="customers" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='customers'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='customers'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='customers'?'#ccc':'rgba(255,255,255,0.4)'};font-size:12.1px;cursor:pointer;white-space:nowrap;">👥 לקוחות</button>
+      <button data-action="owner-tab" data-tab="logs" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='logs'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='logs'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='logs'?'#ccc':'rgba(255,255,255,0.4)'};font-size:12.1px;cursor:pointer;white-space:nowrap;">📜 לוגים</button>
     </div>
     <div style="flex:1;padding:1rem;overflow-y:auto;">
       ${tab==='calendar' ? renderOwnerCalendar() : tab==='list' ? renderOwnerList() : tab==='availability' ? renderOwnerAvailability() : tab==='customers' ? renderOwnerCustomers() : renderOwnerLogs()}
@@ -366,7 +366,7 @@ function renderOwnerDaySlots(dateStr) {
       const appt=isSlotBooked(dateStr,time); const past=isPastSlot(dateStr,time);
       const svc=appt?SERVICES.find(s=>s.id===appt.service):null;
       return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;margin-bottom:6px;border-radius:12px;background:${appt?'rgba(201,168,76,0.08)':'rgba(255,255,255,0.03)'};border:0.5px solid ${appt?'rgba(201,168,76,0.25)':'rgba(255,255,255,0.05)'};">
-        <span style="font-size:15.4px;font-weight:500;color:${appt?'#c9a84c':'rgba(255,255,255,0.3)'};min-width:44px;">${time}</span>
+        <span style="font-size:15.4px;font-weight:500;color:${appt?'#ccc':'rgba(255,255,255,0.3)'};min-width:44px;">${time}</span>
         ${appt?`
           <div style="flex:1;">
             <div style="font-size:15.4px;color:#fff;font-weight:500;">${appt.customer_name}</div>
@@ -401,7 +401,7 @@ function renderOwnerAvailability() {
     <div style="background:rgba(255,255,255,0.04);border-radius:14px;border:0.5px solid rgba(255,255,255,0.08);padding:12px;margin-bottom:12px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
         <button data-action="avail-month-prev" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.12);color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:19.8px;line-height:1;">‹</button>
-        <span style="font-size:15.4px;font-weight:600;color:#c9a84c;">${monthName} ${year}</span>
+        <span style="font-size:15.4px;font-weight:600;color:#ccc;">${monthName} ${year}</span>
         <button data-action="avail-month-next" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.12);color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:19.8px;line-height:1;">›</button>
       </div>
       <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px;">
@@ -425,7 +425,7 @@ function renderOwnerAvailability() {
     ${selDate ? `
     <div style="background:rgba(255,255,255,0.04);border-radius:14px;border:0.5px solid rgba(255,255,255,0.08);padding:12px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-        <div style="font-size:14.3px;font-weight:600;color:#c9a84c;">${(()=>{const fd=formatDisplayDate(new Date(selDate+'T12:00:00'));return `יום ${fd.day}' ${fd.date} ${fd.month}`;})()}</div>
+        <div style="font-size:14.3px;font-weight:600;color:#ccc;">${(()=>{const fd=formatDisplayDate(new Date(selDate+'T12:00:00'));return `יום ${fd.day}' ${fd.date} ${fd.month}`;})()}</div>
         <div style="display:flex;gap:6px;">
           <button data-action="avail-open-all" data-date="${selDate}" style="background:rgba(76,175,80,0.15);border:0.5px solid rgba(76,175,80,0.4);color:#4caf50;padding:4px 10px;border-radius:7px;font-size:12.1px;cursor:pointer;">פתח הכל</button>
           <button data-action="avail-close-all" data-date="${selDate}" style="background:rgba(220,50,50,0.12);border:0.5px solid rgba(220,50,50,0.3);color:#ff8080;padding:4px 10px;border-radius:7px;font-size:12.1px;cursor:pointer;">סגור הכל</button>
@@ -464,7 +464,7 @@ function renderOwnerCustomers() {
       ${isResetting ? `
         <div style="display:flex;gap:6px;margin-bottom:8px;">
           <input id="reset-pw-${u.id}" type="text" placeholder="סיסמה חדשה" value="${state.resetPasswordValue}" style="flex:1;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 10px;color:#fff;font-size:14.3px;outline:none;">
-          <button data-action="confirm-reset-pw" data-id="${u.id}" style="background:#c9a84c;border:none;color:#1a1a2e;padding:8px 12px;border-radius:8px;font-size:13.2px;font-weight:600;cursor:pointer;">אשר</button>
+          <button data-action="confirm-reset-pw" data-id="${u.id}" style="background:#2a2a2a;border:none;color:#fff;padding:8px 12px;border-radius:8px;font-size:13.2px;font-weight:600;cursor:pointer;">אשר</button>
           <button data-action="cancel-reset-pw" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);padding:8px 10px;border-radius:8px;font-size:13.2px;cursor:pointer;">ביטול</button>
         </div>` : ''}
       <div style="display:flex;gap:6px;">
@@ -525,7 +525,7 @@ function renderRescheduleModal() {
   <div style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100;display:flex;align-items:flex-end;">
     <div style="background:#1a1a2e;border-radius:20px 20px 0 0;width:100%;padding:1.5rem;max-height:85vh;overflow-y:auto;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
-        <div style="font-size:16.5px;font-weight:600;color:#c9a84c;">שינוי מועד — ${a.customer_name}</div>
+        <div style="font-size:16.5px;font-weight:600;color:#ccc;">שינוי מועד — ${a.customer_name}</div>
         <button data-action="close-reschedule" style="background:rgba(255,255,255,0.08);border:none;color:#fff;width:32px;height:32px;border-radius:50%;font-size:19.8px;cursor:pointer;">✕</button>
       </div>
       <div style="font-size:13.2px;color:rgba(255,255,255,0.4);margin-bottom:1rem;">תור נוכחי: ${a.date} בשעה ${a.time}</div>
@@ -561,7 +561,7 @@ function renderRescheduleModal() {
           }).join('')}
         </div>
         ${state.rescheduleTime ? `
-          <button data-action="confirm-reschedule" style="width:100%;padding:14px;background:#c9a84c;border:none;border-radius:12px;color:#1a1a2e;font-size:17.6px;font-weight:700;cursor:pointer;">
+          <button data-action="confirm-reschedule" style="width:100%;padding:14px;background:#2a2a2a;border:none;border-radius:12px;color:#fff;font-size:17.6px;font-weight:700;cursor:pointer;">
             ✓ אשר — ${state.rescheduleDate} בשעה ${state.rescheduleTime}
           </button>` : ''}
       ` : `<div style="text-align:center;color:rgba(255,255,255,0.3);font-size:14.3px;padding:1rem;">בחר יום חדש למעלה</div>`}
@@ -585,7 +585,7 @@ function renderOwnerList() {
     if(a.status!=='pending'&&b.status==='pending') return 1;
     return (a.date+a.time).localeCompare(b.date+b.time);
   });
-  const filterBar = filterLabel ? `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><div style="font-size:13.2px;color:#c9a84c;font-weight:500;">${filterLabel}</div><button data-action="stat-click" data-filter="${state.listFilter}" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);padding:3px 10px;border-radius:7px;font-size:12.1px;cursor:pointer;">✕ נקה</button></div>` : '';
+  const filterBar = filterLabel ? `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><div style="font-size:13.2px;color:#ccc;font-weight:500;">${filterLabel}</div><button data-action="stat-click" data-filter="${state.listFilter}" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);padding:3px 10px;border-radius:7px;font-size:12.1px;cursor:pointer;">✕ נקה</button></div>` : '';
   if (!upcoming.length) return filterBar+`<div style="text-align:center;color:rgba(255,255,255,0.2);padding:3rem;font-size:15.4px;">אין תורים</div>`;
   const pending = upcoming.filter(a=>a.status==='pending');
   const others = upcoming.filter(a=>a.status!=='pending');
@@ -598,7 +598,7 @@ function renderOwnerList() {
     return `<div style="background:${isPending?'rgba(255,152,0,0.06)':'rgba(255,255,255,0.04)'};border:${isPending?'1px solid rgba(255,152,0,0.3)':'0.5px solid rgba(255,255,255,0.08)'};border-radius:14px;padding:12px 14px;margin-bottom:10px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
         <div style="background:rgba(201,168,76,0.12);border-radius:10px;padding:8px 10px;text-align:center;min-width:50px;">
-          <div style="font-size:22px;font-weight:600;color:#c9a84c;line-height:1;">${fd.date}</div>
+          <div style="font-size:22px;font-weight:600;color:#ccc;line-height:1;">${fd.date}</div>
           <div style="font-size:11px;color:rgba(201,168,76,0.6);margin-top:1px;">${fd.month}</div>
         </div>
         <div style="flex:1;">
@@ -607,7 +607,7 @@ function renderOwnerList() {
           ${svc?`<div style="font-size:12.1px;color:rgba(201,168,76,0.7);margin-top:1px;">✂️ ${svc.name} — ₪${svc.price}</div>`:''}
         </div>
         <div style="text-align:right;">
-          <div style="font-size:17.6px;font-weight:600;color:#c9a84c;">${a.time}</div>
+          <div style="font-size:17.6px;font-weight:600;color:#ccc;">${a.time}</div>
           <div style="font-size:11px;color:${statusColor};margin-top:3px;">${statusText}</div>
         </div>
       </div>
@@ -727,7 +727,7 @@ function renderCustomer() {
       ${state.selectedService ? `
         <div style="font-size:12.1px;color:rgba(26,26,46,0.45);margin-bottom:10px;letter-spacing:0.5px;">קבע תור חדש</div>
         <div style="background:#111;border-radius:12px;border:0.5px solid rgba(255,255,255,0.1);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-size:14.3px;color:#1a1a2e;">✂️ ${SERVICES.find(s=>s.id===state.selectedService)?.name} — ₪${SERVICES.find(s=>s.id===state.selectedService)?.price}</div>
+          <div style="font-size:14.3px;color:#ccc;">✂️ ${SERVICES.find(s=>s.id===state.selectedService)?.name} — ₪${SERVICES.find(s=>s.id===state.selectedService)?.price}</div>
           <button data-action="clear-service" style="background:rgba(26,26,46,0.06);border:0.5px solid rgba(26,26,46,0.1);color:rgba(26,26,46,0.5);padding:3px 10px;border-radius:7px;font-size:13.2px;cursor:pointer;">שנה</button>
         </div>
         ${renderMonthCalendar()}
@@ -781,7 +781,7 @@ function renderMonthCalendar() {
         const isToday = ds === today;
         const sel = state.selectedDate === ds;
         const freeCount = isPast ? 0 : state.availability.filter(a=>a.date===ds&&!isSlotBooked(ds,a.time)&&!isPastSlot(ds,a.time)).length;
-        return `<button data-action="${isPast?'':'cust-select-date'}" data-date="${ds}" style="padding:6px 2px;border-radius:8px;border:${sel?'1.5px solid #c9a84c':isToday?'1.5px solid rgba(26,26,46,0.3)':'0.5px solid transparent'};background:${sel?'#1a1a2e':isToday?'rgba(26,26,46,0.06)':'transparent'};color:${sel?'#c9a84c':isPast?'rgba(26,26,46,0.2)':'#1a1a2e'};cursor:${isPast?'default':'pointer'};text-align:center;min-height:42px;position:relative;">
+        return `<button data-action="${isPast?'':'cust-select-date'}" data-date="${ds}" style="padding:6px 2px;border-radius:8px;border:${sel?'1.5px solid rgba(255,255,255,0.5)':isToday?'1.5px solid rgba(255,255,255,0.3)':'0.5px solid transparent'};background:${sel?'rgba(255,255,255,0.12)':isToday?'rgba(255,255,255,0.06)':'transparent'};color:${sel?'#ccc':isPast?'rgba(255,255,255,0.15)':'#ccc'};cursor:${isPast?'default':'pointer'};text-align:center;min-height:42px;position:relative;">
           <div style="font-size:15.4px;font-weight:${isToday?'700':'400'};pointer-events:none;">${d}</div>
           ${!isPast&&freeCount>0?`<div style="width:5px;height:5px;border-radius:50%;background:${sel?'#c9a84c':'#4caf50'};margin:2px auto 0;pointer-events:none;"></div>`:`<div style="height:7px;pointer-events:none;"></div>`}
         </button>`;
@@ -831,9 +831,9 @@ function renderCustomerSlots() {
   <div style="background:#111;border-radius:14px;border:0.5px solid rgba(255,255,255,0.1);padding:16px;margin-bottom:12px;">
     <div style="font-size:15.4px;font-weight:600;color:#fff;margin-bottom:14px;">אישור תור</div>
     <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;font-size:14.3px;"><span style="color:rgba(26,26,46,0.5);">שירות</span><span style="color:#1a1a2e;font-weight:500;">✂️ ${service?.name}</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:14.3px;"><span style="color:rgba(26,26,46,0.5);">תאריך</span><span style="color:#1a1a2e;font-weight:500;">${fd.date} ${fd.month}</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:14.3px;"><span style="color:rgba(26,26,46,0.5);">שעה</span><span style="color:#1a1a2e;font-weight:500;">${state.pendingTime}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:14.3px;"><span style="color:rgba(255,255,255,0.5);">שירות</span><span style="color:#fff;font-weight:500;">✂️ ${service?.name}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:14.3px;"><span style="color:rgba(255,255,255,0.5);">תאריך</span><span style="color:#fff;font-weight:500;">${fd.date} ${fd.month}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:14.3px;"><span style="color:rgba(255,255,255,0.5);">שעה</span><span style="color:#fff;font-weight:500;">${state.pendingTime}</span></div>
       <div style="display:flex;justify-content:space-between;font-size:14.3px;border-top:0.5px solid rgba(255,255,255,0.1);padding-top:8px;"><span style="color:rgba(26,26,46,0.5);">מחיר</span><span style="color:#a07828;font-weight:700;">₪${service?.price}</span></div>
     </div>
     <div style="display:flex;gap:8px;">
@@ -1163,17 +1163,21 @@ async function init() {
     render();
   }
 }
-// Splash screen – set logo and auto-hide after 3s
+// Splash screen – set logo and auto-hide after 3.8s
 (function() {
   const splashEl = document.getElementById('splash');
   const splashLogo = document.getElementById('splash-logo');
-  if (splashLogo) splashLogo.src = IMG;
+  if (splashLogo) {
+    splashLogo.src = IMG;
+    // Fade in logo after 1 second
+    setTimeout(function() { splashLogo.style.opacity = '1'; }, 1000);
+  }
   setTimeout(function() {
     if (splashEl) {
       splashEl.style.opacity = '0';
       setTimeout(function() { splashEl.style.display = 'none'; }, 600);
     }
-  }, 3000);
+  }, 3800);
 })();
 
 init();
