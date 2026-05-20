@@ -18,9 +18,9 @@ button { font-family: inherit; }
 <body>
 <div id="splash" style="position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:9999;opacity:1;transition:opacity 0.6s ease;">
   <div style="position:relative;display:inline-block;">
-    <img src="" id="splash-logo" style="width:240px;height:240px;border-radius:50%;object-fit:cover;display:block;" />
+    <img src="" id="splash-logo" style="width:240px;height:240px;border-radius:50%;object-fit:cover;display:block;opacity:0;transition:opacity 0.8s ease;" />
     <div id="splash-shimmer" style="position:absolute;inset:0;border-radius:50%;overflow:hidden;pointer-events:none;">
-      <div style="position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(105deg,transparent 20%,rgba(255,255,255,0.55) 50%,transparent 80%);transform:skewX(-15deg);animation:shimmer 1.8s ease forwards;animation-delay:1s;opacity:0;"></div>
+      <div style="position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(105deg,transparent 20%,rgba(255,255,255,0.55) 50%,transparent 80%);transform:skewX(-15deg);animation:shimmer 1.8s ease forwards;animation-delay:2s;opacity:0;"></div>
     </div>
   </div>
 </div>
@@ -60,6 +60,7 @@ async function sendWhatsApp(phone, message) {
 }
 
 const OWNER = { username: 'admin', password: '433e5f5171937c52ce95527886731bc519d504331a44cee59a8c8420c4ba1dc8', name: 'בעל המספרה', role: 'owner' };
+const SADMIN = { username: 'sadmin', password: 'sadmin2025', name: 'Super Admin', role: 'sadmin' };
 
 function hashPassword(pw) {
   // Simple SHA-256 via SubtleCrypto
@@ -138,7 +139,9 @@ let state = {
   listFilter: null,
   confirmCancel: null,
   confirmDeleteAccount: false,
-  showSettingsMenu: false
+  showSettingsMenu: false,
+  sadminModal: null,
+  sadminCalView: 'day'
 };
 
 
@@ -166,7 +169,7 @@ if (savedUser) {
   try {
     const u = JSON.parse(savedUser);
     state.user = u;
-    state.view = u.role === 'owner' ? 'owner' : 'customer';
+    state.view = u.role === 'owner' ? 'owner' : u.role === 'sadmin' ? 'sadmin' : 'customer';
   } catch(e) { localStorage.removeItem('barber_session'); }
 }
 
@@ -235,7 +238,11 @@ function render() {
   const app = document.getElementById('app');
   if (state.view==='login') app.innerHTML = renderLogin();
   else if (state.view==='owner') app.innerHTML = renderOwner();
+  else if (state.view==='sadmin') app.innerHTML = renderSadmin();
   else if (state.view==='customer') app.innerHTML = renderCustomer();
+  // Footer
+  const footer = `<div style="text-align:center;padding:10px 0 calc(env(safe-area-inset-bottom) + 10px);font-size:11px;color:rgba(255,255,255,0.45);">powered by <a href="https://peletor.co.il" target="_blank" style="color:rgba(255,255,255,0.55);text-decoration:none;">Peletor</a> · <a href="https://peletor.co.il" target="_blank" style="color:rgba(255,255,255,0.45);text-decoration:none;">peletor.co.il</a></div>`;
+  app.insertAdjacentHTML('beforeend', footer);
   document.querySelectorAll('input').forEach(inp => inp.addEventListener('input', e => {
     const map={'login-user':'username','login-pass':'password','reg-name':'name','reg-phone':'phone','reg-user':'username','reg-pass':'password'};
     if (map[e.target.id]) state.form[map[e.target.id]] = e.target.value;
@@ -258,8 +265,8 @@ function renderLogin() {
       ${state.error?`<div style="background:rgba(220,50,50,0.15);border:0.5px solid rgba(220,50,50,0.4);color:#ff8080;padding:10px 14px;border-radius:10px;font-size:15.4px;margin-bottom:1rem;text-align:center;">${state.error}</div>`:''}
       ${state.success?`<div style="background:rgba(50,200,100,0.15);border:0.5px solid rgba(50,200,100,0.4);color:#80ffb0;padding:10px 14px;border-radius:10px;font-size:15.4px;margin-bottom:1rem;text-align:center;">${state.success}</div>`:''}
       <div style="display:flex;gap:8px;margin-bottom:1rem;">
-        <button data-action="toggle-mode" data-mode="login" style="flex:1;padding:10px;border-radius:10px;border:0.5px solid rgba(201,168,76,${!mode?'0.8':'0.2'});background:${!mode?'rgba(201,168,76,0.15)':'transparent'};color:${!mode?'#c9a84c':'rgba(255,255,255,0.4)'};font-size:15.4px;cursor:pointer;">כניסה</button>
-        <button data-action="toggle-mode" data-mode="register" style="flex:1;padding:10px;border-radius:10px;border:0.5px solid rgba(201,168,76,${mode?'0.8':'0.2'});background:${mode?'rgba(201,168,76,0.15)':'transparent'};color:${mode?'#c9a84c':'rgba(255,255,255,0.4)'};font-size:15.4px;cursor:pointer;">הרשמה</button>
+        <button data-action="toggle-mode" data-mode="login" style="flex:1;padding:10px;border-radius:10px;border:0.5px solid rgba(183,149,111,${!mode?'0.8':'0.2'});background:${!mode?'#b7956f':'transparent'};color:${!mode?'#3a2a1a':'rgba(255,255,255,0.4)'};font-size:15.4px;cursor:pointer;font-weight:${!mode?'600':'400'};">כניסה</button>
+        <button data-action="toggle-mode" data-mode="register" style="flex:1;padding:10px;border-radius:10px;border:0.5px solid rgba(183,149,111,${mode?'0.8':'0.2'});background:${mode?'#b7956f':'transparent'};color:${mode?'#3a2a1a':'rgba(255,255,255,0.4)'};font-size:15.4px;cursor:pointer;font-weight:${mode?'600':'400'};">הרשמה</button>
       </div>
       <div style="text-align:center;margin-bottom:1.25rem;">
         <button data-action="guest-view" style="background:transparent;border:none;color:rgba(255,255,255,0.35);font-size:13.2px;cursor:pointer;">צפה בזמינות ללא הרשמה</button>
@@ -273,13 +280,13 @@ function renderLogin() {
         <input id="reg-user" type="text" placeholder="username" autocomplete="username" style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 14px;color:#fff;outline:none;" value="${state.form.username||''}"></div>
         <div style="margin-bottom:1.75rem;"><label style="color:rgba(255,255,255,0.55);font-size:13.2px;display:block;margin-bottom:5px;">סיסמה</label>
         <input id="reg-pass" type="password" placeholder="••••••••" autocomplete="new-password" style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 14px;color:#fff;outline:none;" value="${state.form.password||''}"></div>
-        <button data-action="register" style="width:100%;padding:14px;background:${state.loading?'rgba(201,168,76,0.5)':'#c9a84c'};border:none;border-radius:10px;color:#1a1a2e;font-size:17.6px;font-weight:600;cursor:pointer;">${state.loading?'...':'הרשמה'}</button>
+        <button data-action="register" style="width:100%;padding:14px;background:${state.loading?'rgba(60,60,60,0.5)':'#2a2a2a'};border:none;border-radius:10px;color:#fff;font-size:17.6px;font-weight:600;cursor:pointer;">${state.loading?'...':'הרשמה'}</button>
       ` : `
         <div style="margin-bottom:14px;"><label style="color:rgba(255,255,255,0.55);font-size:13.2px;display:block;margin-bottom:5px;">שם משתמש</label>
         <input id="login-user" type="text" placeholder="username" autocomplete="username" style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 14px;color:#fff;outline:none;" value="${state.form.username||''}"></div>
         <div style="margin-bottom:1.75rem;"><label style="color:rgba(255,255,255,0.55);font-size:13.2px;display:block;margin-bottom:5px;">סיסמה</label>
         <input id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 14px;color:#fff;outline:none;" value="${state.form.password||''}"></div>
-        <button data-action="login" style="width:100%;padding:14px;background:${state.loading?'rgba(201,168,76,0.5)':'#c9a84c'};border:none;border-radius:10px;color:#fff;font-size:17.6px;font-weight:600;cursor:pointer;">${state.loading?'...':'כניסה'}</button>
+        <button data-action="login" style="width:100%;padding:14px;background:${state.loading?'rgba(60,60,60,0.5)':'#2a2a2a'};border:none;border-radius:10px;color:#fff;font-size:17.6px;font-weight:600;cursor:pointer;">${state.loading?'...':'כניסה'}</button>
       `}
     </div>
   </div>`;
@@ -297,7 +304,7 @@ function renderOwner() {
           <img src="${IMG}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid rgba(201,168,76,0.5);">
           <div>
             <div style="font-size:12.1px;color:rgba(201,168,76,0.7);letter-spacing:1px;">Lishay Barber</div>
-            <div style="font-size:16.5px;font-weight:500;color:#c9a84c;margin-top:1px;">לוח בעל מספרה</div>
+            <div style="font-size:16.5px;font-weight:500;color:#ccc;margin-top:1px;">לוח בעל מספרה</div>
           </div>
         </div>
       </div>
@@ -306,7 +313,7 @@ function renderOwner() {
     </div>
     <div style="display:flex;gap:10px;padding:1rem;border-bottom:0.5px solid rgba(255,255,255,0.06);">
       <button data-action="stat-click" data-filter="today" style="flex:1;background:${state.listFilter==='today'?'rgba(201,168,76,0.2)':'rgba(201,168,76,0.1)'};border:${state.listFilter==='today'?'1px solid rgba(201,168,76,0.6)':'0.5px solid rgba(201,168,76,0.25)'};border-radius:12px;padding:12px;text-align:center;cursor:pointer;">
-        <div style="font-size:30.8px;font-weight:600;color:#c9a84c;">${totalToday}</div>
+        <div style="font-size:30.8px;font-weight:600;color:#ccc;">${totalToday}</div>
         <div style="font-size:12.1px;color:rgba(255,255,255,0.4);margin-top:3px;">תורים היום</div>
       </button>
       <button data-action="stat-click" data-filter="upcoming" style="flex:1;background:${state.listFilter==='upcoming'?'rgba(255,255,255,0.1)':'rgba(255,255,255,0.04)'};border:${state.listFilter==='upcoming'?'1px solid rgba(255,255,255,0.3)':'0.5px solid rgba(255,255,255,0.08)'};border-radius:12px;padding:12px;text-align:center;cursor:pointer;">
@@ -319,11 +326,11 @@ function renderOwner() {
       </button>
     </div>
     <div style="display:flex;border-bottom:0.5px solid rgba(255,255,255,0.06);position:sticky;top:64px;background:#000;z-index:9;overflow-x:auto;">
-      <button data-action="owner-tab" data-tab="calendar" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='calendar'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='calendar'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='calendar'?'#c9a84c':'rgba(255,255,255,0.4)'};font-size:12.1px;cursor:pointer;white-space:nowrap;">📅 יומן</button>
-      <button data-action="owner-tab" data-tab="list" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='list'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='list'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='list'?'#c9a84c':'rgba(255,255,255,0.4)'};font-size:12.1px;cursor:pointer;white-space:nowrap;">📋 רשימה</button>
-      <button data-action="owner-tab" data-tab="availability" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='availability'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='availability'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='availability'?'#c9a84c':'rgba(255,255,255,0.4)'};font-size:12.1px;cursor:pointer;white-space:nowrap;">⚙️ זמינות</button>
-      <button data-action="owner-tab" data-tab="customers" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='customers'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='customers'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='customers'?'#c9a84c':'rgba(255,255,255,0.4)'};font-size:12.1px;cursor:pointer;white-space:nowrap;">👥 לקוחות</button>
-      <button data-action="owner-tab" data-tab="logs" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='logs'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='logs'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='logs'?'#c9a84c':'rgba(255,255,255,0.4)'};font-size:12.1px;cursor:pointer;white-space:nowrap;">📜 לוגים</button>
+      <button data-action="owner-tab" data-tab="calendar" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='calendar'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='calendar'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='calendar'?'#ccc':'rgba(255,255,255,0.4)'};font-size:12.1px;cursor:pointer;white-space:nowrap;">📅 יומן</button>
+      <button data-action="owner-tab" data-tab="list" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='list'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='list'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='list'?'#ccc':'rgba(255,255,255,0.4)'};font-size:12.1px;cursor:pointer;white-space:nowrap;">📋 רשימה</button>
+      <button data-action="owner-tab" data-tab="availability" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='availability'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='availability'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='availability'?'#ccc':'rgba(255,255,255,0.4)'};font-size:12.1px;cursor:pointer;white-space:nowrap;">⚙️ זמינות</button>
+      <button data-action="owner-tab" data-tab="customers" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='customers'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='customers'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='customers'?'#ccc':'rgba(255,255,255,0.4)'};font-size:12.1px;cursor:pointer;white-space:nowrap;">👥 לקוחות</button>
+      <button data-action="owner-tab" data-tab="logs" style="flex:1;min-width:60px;padding:11px 4px;background:${tab==='logs'?'rgba(201,168,76,0.08)':'transparent'};border:none;border-bottom:${tab==='logs'?'2px solid #c9a84c':'2px solid transparent'};color:${tab==='logs'?'#ccc':'rgba(255,255,255,0.4)'};font-size:12.1px;cursor:pointer;white-space:nowrap;">📜 לוגים</button>
     </div>
     <div style="flex:1;padding:1rem;overflow-y:auto;">
       ${tab==='calendar' ? renderOwnerCalendar() : tab==='list' ? renderOwnerList() : tab==='availability' ? renderOwnerAvailability() : tab==='customers' ? renderOwnerCustomers() : renderOwnerLogs()}
@@ -366,7 +373,7 @@ function renderOwnerDaySlots(dateStr) {
       const appt=isSlotBooked(dateStr,time); const past=isPastSlot(dateStr,time);
       const svc=appt?SERVICES.find(s=>s.id===appt.service):null;
       return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;margin-bottom:6px;border-radius:12px;background:${appt?'rgba(201,168,76,0.08)':'rgba(255,255,255,0.03)'};border:0.5px solid ${appt?'rgba(201,168,76,0.25)':'rgba(255,255,255,0.05)'};">
-        <span style="font-size:15.4px;font-weight:500;color:${appt?'#c9a84c':'rgba(255,255,255,0.3)'};min-width:44px;">${time}</span>
+        <span style="font-size:15.4px;font-weight:500;color:${appt?'#ccc':'rgba(255,255,255,0.3)'};min-width:44px;">${time}</span>
         ${appt?`
           <div style="flex:1;">
             <div style="font-size:15.4px;color:#fff;font-weight:500;">${appt.customer_name}</div>
@@ -401,7 +408,7 @@ function renderOwnerAvailability() {
     <div style="background:rgba(255,255,255,0.04);border-radius:14px;border:0.5px solid rgba(255,255,255,0.08);padding:12px;margin-bottom:12px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
         <button data-action="avail-month-prev" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.12);color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:19.8px;line-height:1;">‹</button>
-        <span style="font-size:15.4px;font-weight:600;color:#c9a84c;">${monthName} ${year}</span>
+        <span style="font-size:15.4px;font-weight:600;color:#ccc;">${monthName} ${year}</span>
         <button data-action="avail-month-next" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.12);color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:19.8px;line-height:1;">›</button>
       </div>
       <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px;">
@@ -425,7 +432,7 @@ function renderOwnerAvailability() {
     ${selDate ? `
     <div style="background:rgba(255,255,255,0.04);border-radius:14px;border:0.5px solid rgba(255,255,255,0.08);padding:12px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-        <div style="font-size:14.3px;font-weight:600;color:#c9a84c;">${(()=>{const fd=formatDisplayDate(new Date(selDate+'T12:00:00'));return `יום ${fd.day}' ${fd.date} ${fd.month}`;})()}</div>
+        <div style="font-size:14.3px;font-weight:600;color:#ccc;">${(()=>{const fd=formatDisplayDate(new Date(selDate+'T12:00:00'));return `יום ${fd.day}' ${fd.date} ${fd.month}`;})()}</div>
         <div style="display:flex;gap:6px;">
           <button data-action="avail-open-all" data-date="${selDate}" style="background:rgba(76,175,80,0.15);border:0.5px solid rgba(76,175,80,0.4);color:#4caf50;padding:4px 10px;border-radius:7px;font-size:12.1px;cursor:pointer;">פתח הכל</button>
           <button data-action="avail-close-all" data-date="${selDate}" style="background:rgba(220,50,50,0.12);border:0.5px solid rgba(220,50,50,0.3);color:#ff8080;padding:4px 10px;border-radius:7px;font-size:12.1px;cursor:pointer;">סגור הכל</button>
@@ -464,7 +471,7 @@ function renderOwnerCustomers() {
       ${isResetting ? `
         <div style="display:flex;gap:6px;margin-bottom:8px;">
           <input id="reset-pw-${u.id}" type="text" placeholder="סיסמה חדשה" value="${state.resetPasswordValue}" style="flex:1;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 10px;color:#fff;font-size:14.3px;outline:none;">
-          <button data-action="confirm-reset-pw" data-id="${u.id}" style="background:#c9a84c;border:none;color:#1a1a2e;padding:8px 12px;border-radius:8px;font-size:13.2px;font-weight:600;cursor:pointer;">אשר</button>
+          <button data-action="confirm-reset-pw" data-id="${u.id}" style="background:#2a2a2a;border:none;color:#fff;padding:8px 12px;border-radius:8px;font-size:13.2px;font-weight:600;cursor:pointer;">אשר</button>
           <button data-action="cancel-reset-pw" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);padding:8px 10px;border-radius:8px;font-size:13.2px;cursor:pointer;">ביטול</button>
         </div>` : ''}
       <div style="display:flex;gap:6px;">
@@ -525,7 +532,7 @@ function renderRescheduleModal() {
   <div style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100;display:flex;align-items:flex-end;">
     <div style="background:#1a1a2e;border-radius:20px 20px 0 0;width:100%;padding:1.5rem;max-height:85vh;overflow-y:auto;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
-        <div style="font-size:16.5px;font-weight:600;color:#c9a84c;">שינוי מועד — ${a.customer_name}</div>
+        <div style="font-size:16.5px;font-weight:600;color:#ccc;">שינוי מועד — ${a.customer_name}</div>
         <button data-action="close-reschedule" style="background:rgba(255,255,255,0.08);border:none;color:#fff;width:32px;height:32px;border-radius:50%;font-size:19.8px;cursor:pointer;">✕</button>
       </div>
       <div style="font-size:13.2px;color:rgba(255,255,255,0.4);margin-bottom:1rem;">תור נוכחי: ${a.date} בשעה ${a.time}</div>
@@ -561,7 +568,7 @@ function renderRescheduleModal() {
           }).join('')}
         </div>
         ${state.rescheduleTime ? `
-          <button data-action="confirm-reschedule" style="width:100%;padding:14px;background:#c9a84c;border:none;border-radius:12px;color:#1a1a2e;font-size:17.6px;font-weight:700;cursor:pointer;">
+          <button data-action="confirm-reschedule" style="width:100%;padding:14px;background:#2a2a2a;border:none;border-radius:12px;color:#fff;font-size:17.6px;font-weight:700;cursor:pointer;">
             ✓ אשר — ${state.rescheduleDate} בשעה ${state.rescheduleTime}
           </button>` : ''}
       ` : `<div style="text-align:center;color:rgba(255,255,255,0.3);font-size:14.3px;padding:1rem;">בחר יום חדש למעלה</div>`}
@@ -585,7 +592,7 @@ function renderOwnerList() {
     if(a.status!=='pending'&&b.status==='pending') return 1;
     return (a.date+a.time).localeCompare(b.date+b.time);
   });
-  const filterBar = filterLabel ? `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><div style="font-size:13.2px;color:#c9a84c;font-weight:500;">${filterLabel}</div><button data-action="stat-click" data-filter="${state.listFilter}" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);padding:3px 10px;border-radius:7px;font-size:12.1px;cursor:pointer;">✕ נקה</button></div>` : '';
+  const filterBar = filterLabel ? `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><div style="font-size:13.2px;color:#ccc;font-weight:500;">${filterLabel}</div><button data-action="stat-click" data-filter="${state.listFilter}" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);padding:3px 10px;border-radius:7px;font-size:12.1px;cursor:pointer;">✕ נקה</button></div>` : '';
   if (!upcoming.length) return filterBar+`<div style="text-align:center;color:rgba(255,255,255,0.2);padding:3rem;font-size:15.4px;">אין תורים</div>`;
   const pending = upcoming.filter(a=>a.status==='pending');
   const others = upcoming.filter(a=>a.status!=='pending');
@@ -598,7 +605,7 @@ function renderOwnerList() {
     return `<div style="background:${isPending?'rgba(255,152,0,0.06)':'rgba(255,255,255,0.04)'};border:${isPending?'1px solid rgba(255,152,0,0.3)':'0.5px solid rgba(255,255,255,0.08)'};border-radius:14px;padding:12px 14px;margin-bottom:10px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
         <div style="background:rgba(201,168,76,0.12);border-radius:10px;padding:8px 10px;text-align:center;min-width:50px;">
-          <div style="font-size:22px;font-weight:600;color:#c9a84c;line-height:1;">${fd.date}</div>
+          <div style="font-size:22px;font-weight:600;color:#ccc;line-height:1;">${fd.date}</div>
           <div style="font-size:11px;color:rgba(201,168,76,0.6);margin-top:1px;">${fd.month}</div>
         </div>
         <div style="flex:1;">
@@ -607,7 +614,7 @@ function renderOwnerList() {
           ${svc?`<div style="font-size:12.1px;color:rgba(201,168,76,0.7);margin-top:1px;">✂️ ${svc.name} — ₪${svc.price}</div>`:''}
         </div>
         <div style="text-align:right;">
-          <div style="font-size:17.6px;font-weight:600;color:#c9a84c;">${a.time}</div>
+          <div style="font-size:17.6px;font-weight:600;color:#ccc;">${a.time}</div>
           <div style="font-size:11px;color:${statusColor};margin-top:3px;">${statusText}</div>
         </div>
       </div>
@@ -727,7 +734,7 @@ function renderCustomer() {
       ${state.selectedService ? `
         <div style="font-size:12.1px;color:rgba(26,26,46,0.45);margin-bottom:10px;letter-spacing:0.5px;">קבע תור חדש</div>
         <div style="background:#111;border-radius:12px;border:0.5px solid rgba(255,255,255,0.1);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-size:14.3px;color:#1a1a2e;">✂️ ${SERVICES.find(s=>s.id===state.selectedService)?.name} — ₪${SERVICES.find(s=>s.id===state.selectedService)?.price}</div>
+          <div style="font-size:14.3px;color:#ccc;">✂️ ${SERVICES.find(s=>s.id===state.selectedService)?.name} — ₪${SERVICES.find(s=>s.id===state.selectedService)?.price}</div>
           <button data-action="clear-service" style="background:rgba(26,26,46,0.06);border:0.5px solid rgba(26,26,46,0.1);color:rgba(26,26,46,0.5);padding:3px 10px;border-radius:7px;font-size:13.2px;cursor:pointer;">שנה</button>
         </div>
         ${renderMonthCalendar()}
@@ -781,7 +788,7 @@ function renderMonthCalendar() {
         const isToday = ds === today;
         const sel = state.selectedDate === ds;
         const freeCount = isPast ? 0 : state.availability.filter(a=>a.date===ds&&!isSlotBooked(ds,a.time)&&!isPastSlot(ds,a.time)).length;
-        return `<button data-action="${isPast?'':'cust-select-date'}" data-date="${ds}" style="padding:6px 2px;border-radius:8px;border:${sel?'1.5px solid #c9a84c':isToday?'1.5px solid rgba(26,26,46,0.3)':'0.5px solid transparent'};background:${sel?'#1a1a2e':isToday?'rgba(26,26,46,0.06)':'transparent'};color:${sel?'#c9a84c':isPast?'rgba(26,26,46,0.2)':'#1a1a2e'};cursor:${isPast?'default':'pointer'};text-align:center;min-height:42px;position:relative;">
+        return `<button data-action="${isPast?'':'cust-select-date'}" data-date="${ds}" style="padding:6px 2px;border-radius:8px;border:${sel?'1.5px solid rgba(255,255,255,0.5)':isToday?'1.5px solid rgba(255,255,255,0.3)':'0.5px solid transparent'};background:${sel?'rgba(255,255,255,0.12)':isToday?'rgba(255,255,255,0.06)':'transparent'};color:${sel?'#ccc':isPast?'rgba(255,255,255,0.15)':'#ccc'};cursor:${isPast?'default':'pointer'};text-align:center;min-height:42px;position:relative;">
           <div style="font-size:15.4px;font-weight:${isToday?'700':'400'};pointer-events:none;">${d}</div>
           ${!isPast&&freeCount>0?`<div style="width:5px;height:5px;border-radius:50%;background:${sel?'#c9a84c':'#4caf50'};margin:2px auto 0;pointer-events:none;"></div>`:`<div style="height:7px;pointer-events:none;"></div>`}
         </button>`;
@@ -831,9 +838,9 @@ function renderCustomerSlots() {
   <div style="background:#111;border-radius:14px;border:0.5px solid rgba(255,255,255,0.1);padding:16px;margin-bottom:12px;">
     <div style="font-size:15.4px;font-weight:600;color:#fff;margin-bottom:14px;">אישור תור</div>
     <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;font-size:14.3px;"><span style="color:rgba(26,26,46,0.5);">שירות</span><span style="color:#1a1a2e;font-weight:500;">✂️ ${service?.name}</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:14.3px;"><span style="color:rgba(26,26,46,0.5);">תאריך</span><span style="color:#1a1a2e;font-weight:500;">${fd.date} ${fd.month}</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:14.3px;"><span style="color:rgba(26,26,46,0.5);">שעה</span><span style="color:#1a1a2e;font-weight:500;">${state.pendingTime}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:14.3px;"><span style="color:rgba(255,255,255,0.5);">שירות</span><span style="color:#fff;font-weight:500;">✂️ ${service?.name}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:14.3px;"><span style="color:rgba(255,255,255,0.5);">תאריך</span><span style="color:#fff;font-weight:500;">${fd.date} ${fd.month}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:14.3px;"><span style="color:rgba(255,255,255,0.5);">שעה</span><span style="color:#fff;font-weight:500;">${state.pendingTime}</span></div>
       <div style="display:flex;justify-content:space-between;font-size:14.3px;border-top:0.5px solid rgba(255,255,255,0.1);padding-top:8px;"><span style="color:rgba(26,26,46,0.5);">מחיר</span><span style="color:#a07828;font-weight:700;">₪${service?.price}</span></div>
     </div>
     <div style="display:flex;gap:8px;">
@@ -862,7 +869,12 @@ async function handleAction(e) {
   else if (action==='login') {
     const u=state.form.username||document.getElementById('login-user')?.value||'';
     const p=state.form.password||document.getElementById('login-pass')?.value||'';
-    if (u===OWNER.username) {
+    if (u===SADMIN.username) {
+      if (p === SADMIN.password) {
+        state.user=SADMIN; state.view='sadmin'; saveSession(SADMIN);
+        doSadminLoad();
+      } else { state.error='סיסמה שגויה'; render(); }
+    } else if (u===OWNER.username) {
       const hashed = await hashPassword(p);
       if (hashed === OWNER.password) {
         doLoginOwner();
@@ -879,13 +891,14 @@ async function handleAction(e) {
     const username=state.form.username||document.getElementById('reg-user')?.value||'';
     const password=state.form.password||document.getElementById('reg-pass')?.value||'';
     if (!name||!phone||!username||!password) { state.error='יש למלא את כל השדות'; render(); return; }
-    if (username==='admin') { state.error='שם משתמש זה שמור'; render(); return; }
+    if (username==='admin'||username==='sadmin') { state.error='שם משתמש זה שמור'; render(); return; }
     doRegister(name, phone, username, password);
   }
   else if (action==='logout') { const u=state.user; if(u?.role!=='guest') addLog('התנתקות', u?.role==='owner'?'בעל המספרה התנתק':`${u?.name||''} התנתק`, u?.username||'').catch(()=>{}); state.user=null; state.guest=false; state.view='login'; state.form={}; state.selectedDate=null; state.appointments=[]; clearSession(); render(); }
   else if (action==='owner-tab') {
     state.ownerTab=e.currentTarget.dataset.tab;
     render();
+    if (state.user?.role==='sadmin') { doSadminLoad(); return; }
     if (state.ownerTab==='customers') doLoadUsers();
     else if (state.ownerTab==='logs') doLoadLogs();
     else doRefresh();
@@ -934,6 +947,46 @@ async function handleAction(e) {
     const name=e.currentTarget.dataset.name;
     if (!confirm(`למחוק את הלקוח ${name}? כל התורים שלו יימחקו גם כן.`)) return;
     doDeleteUser(id, name);
+  }
+  else if (action==='sadmin-open-appt') {
+    const id=e.currentTarget.dataset.id;
+    const appt=state.appointments.find(a=>a.id===id);
+    state.sadminModal={type:'appt',appt};
+    render();
+  }
+  else if (action==='sadmin-open-list') {
+    const filter=e.currentTarget.dataset.filter;
+    state.sadminModal={type:'list',filter};
+    render();
+  }
+  else if (action==='sadmin-close-modal') {
+    state.sadminModal=null; render();
+  }
+  else if (action==='modal-inner') {
+    // stop propagation - do nothing
+    return;
+  }
+  else if (action==='sadmin-approve') {
+    const id=e.currentTarget.dataset.id;
+    state.sadminModal=null;
+    doUpdateApptStatus(id,'approved','התור שלך אושר! נשמח לראותך.');
+  }
+  else if (action==='sadmin-calview') {
+    state.sadminCalView = e.currentTarget.dataset.view;
+    state.calendarWeekOffset=0; state.availMonthOffset=0;
+    render();
+  }
+  else if (action==='sadmin-cal-prev') {
+    const v=state.sadminCalView||'day';
+    if(v==='month') state.availMonthOffset=(state.availMonthOffset||0)-1;
+    else state.calendarWeekOffset=(state.calendarWeekOffset||0)-1;
+    render();
+  }
+  else if (action==='sadmin-cal-next') {
+    const v=state.sadminCalView||'day';
+    if(v==='month') state.availMonthOffset=(state.availMonthOffset||0)+1;
+    else state.calendarWeekOffset=(state.calendarWeekOffset||0)+1;
+    render();
   }
   else if (action==='avail-month-prev') { if(state.availMonthOffset>0)state.availMonthOffset--; render(); }
   else if (action==='avail-month-next') { state.availMonthOffset++; render(); }
@@ -1151,11 +1204,353 @@ async function doDeleteUser(id, name) {
 
 // לוגים גם לפעולות לקוח - מובנים ב-helpers
 
+
+// ═══════════════════════════════════════
+// SADMIN – סופר אדמין
+// ═══════════════════════════════════════
+async function doSadminLoad() {
+  state.loading = true; render();
+  try {
+    const [appts, users, logs] = await Promise.all([
+      getAppointments().catch(()=>[]),
+      getAllUsers().catch(()=>[]),
+      getLogs().catch(()=>[])
+    ]);
+    state.appointments = appts;
+    state.users = users;
+    state.logs = logs;
+  } catch(err) { state.error = 'שגיאה בטעינה: ' + err.message; }
+  state.loading = false;
+  render();
+}
+
+function renderSadmin() {
+  const total = state.appointments.length;
+  const pending = state.appointments.filter(a=>a.status==='pending').length;
+  const approved = state.appointments.filter(a=>a.status==='approved').length;
+  const cancelled = state.appointments.filter(a=>a.status==='rejected').length;
+  const users = state.users.length;
+  const tab = state.ownerTab || 'calendar';
+  const calView = state.sadminCalView || 'day';
+  const today = formatDate(new Date());
+
+  // ── helpers ──
+  function apptColor(a) {
+    if (a.status==='approved') return { bg:'rgba(76,175,80,0.12)', border:'rgba(76,175,80,0.4)', dot:'#4caf50', text:'#66bb6a' };
+    if (a.status==='rejected') return { bg:'rgba(244,67,54,0.1)', border:'rgba(244,67,54,0.35)', dot:'#f44336', text:'#ef5350' };
+    return { bg:'rgba(255,152,0,0.1)', border:'rgba(255,152,0,0.35)', dot:'#ff9800', text:'#ffa726' };
+  }
+  function waLink(phone,name) {
+    if(!phone) return '';
+    const clean=phone.replace(/\D/g,'');
+    const intl=clean.startsWith('972')?clean:'972'+clean.replace(/^0/,'');
+    return `<a href="https://wa.me/${intl}" target="_blank" style="color:#25D366;text-decoration:none;display:inline-flex;align-items:center;gap:5px;font-size:13px;background:rgba(37,211,102,0.1);padding:5px 12px;border-radius:8px;border:0.5px solid rgba(37,211,102,0.25);">💬 ${name||phone}</a>`;
+  }
+  function getCalTitle() {
+    if (calView==='day') {
+      const d=new Date(); d.setDate(d.getDate()+(state.calendarWeekOffset||0));
+      const fd=formatDisplayDate(d); return `יום ${fd.day}', ${fd.date} ${fd.month}`;
+    }
+    if (calView==='week') {
+      const dates=getDates(state.calendarWeekOffset||0);
+      const fd0=formatDisplayDate(dates[0]); const fd6=formatDisplayDate(dates[6]);
+      return `${fd0.date} ${fd0.month} – ${fd6.date} ${fd6.month}`;
+    }
+    const base=new Date(); base.setMonth(base.getMonth()+(state.availMonthOffset||0));
+    return ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'][base.getMonth()]+' '+base.getFullYear();
+  }
+  function renderDayView() {
+    const offset=state.calendarWeekOffset||0;
+    const d=new Date(); d.setDate(d.getDate()+offset);
+    const ds=formatDate(d);
+    const dayAppts=state.appointments.filter(a=>a.date===ds).sort((a,b)=>a.time>b.time?1:-1);
+    const slots=generateSlots();
+    return `<div style="display:flex;flex-direction:column;gap:4px;">
+      ${slots.map(time=>{
+        const a=dayAppts.find(x=>x.time===time);
+        const c=a?apptColor(a):null;
+        return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:10px;background:${a?c.bg:'rgba(255,255,255,0.02)'};border:0.5px solid ${a?c.border:'rgba(255,255,255,0.04)'};">
+          <span style="font-size:12px;color:rgba(255,255,255,0.3);min-width:40px;">${time}</span>
+          ${a?`<span style="width:6px;height:6px;border-radius:50%;background:${c.dot};flex-shrink:0;"></span>
+          <span style="font-size:13px;color:#fff;font-weight:500;flex:1;">${a.customer_name}</span>
+          <span style="font-size:11px;color:${c.text};">${a.status==='approved'?'✓':a.status==='rejected'?'✗':'⏳'}</span>`
+          :`<span style="font-size:12px;color:rgba(255,255,255,0.1);flex:1;">—</span>`}
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+  function renderWeekView() {
+    const dates=getDates(state.calendarWeekOffset||0);
+    const days=['א','ב','ג','ד','ה','ו','ש'];
+    return `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;">
+      ${dates.map(d=>{
+        const ds=formatDate(d);
+        const dayAppts=state.appointments.filter(a=>a.date===ds);
+        const isToday=ds===today;
+        const dOffset = Math.round((d - new Date(new Date().toDateString())) / 86400000);
+        return `<button data-action="noop" data-sadmin-day="${dOffset}" style="background:rgba(255,255,255,0.03);border:0.5px solid ${isToday?'rgba(201,168,76,0.4)':'rgba(255,255,255,0.06)'};border-radius:12px;padding:8px 4px;min-height:110px;cursor:pointer;width:100%;text-align:center;">
+          <div style="text-align:center;font-size:10px;color:rgba(255,255,255,0.3);margin-bottom:3px;">${days[d.getDay()]}'</div>
+          <div style="text-align:center;font-size:18px;font-weight:${isToday?700:400};color:${isToday?'#c9a84c':'rgba(255,255,255,0.65)'};margin-bottom:6px;">${d.getDate()}</div>
+          ${dayAppts.slice(0,5).map(a=>{ const c=apptColor(a); return `<div style="width:calc(100% - 4px);height:5px;border-radius:3px;background:${c.dot};margin:0 2px 3px;opacity:0.9;pointer-events:none;"></div>`; }).join('')}
+          ${dayAppts.length>5?`<div style="font-size:8px;color:rgba(255,255,255,0.25);text-align:center;pointer-events:none;">+${dayAppts.length-5}</div>`:''}
+        </button>`;
+      }).join('')}
+    </div>`;
+  }
+  function renderMonthView() {
+    const offset=state.availMonthOffset||0;
+    const base=new Date(); base.setMonth(base.getMonth()+offset);
+    const year=base.getFullYear(); const month=base.getMonth();
+    const daysInMonth=new Date(year,month+1,0).getDate();
+    const firstDay=new Date(year,month,1).getDay();
+    let cells=[]; for(let i=0;i<firstDay;i++) cells.push(null);
+    for(let d=1;d<=daysInMonth;d++) cells.push(d);
+    while(cells.length%7!==0) cells.push(null);
+    const days=['א','ב','ג','ד','ה','ו','ש'];
+    return `<div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px;">
+        ${days.map(d=>`<div style="text-align:center;font-size:10px;color:rgba(255,255,255,0.25);padding:3px 0;">${d}'</div>`).join('')}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">
+        ${cells.map(d=>{
+          if(!d) return `<div></div>`;
+          const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+          const dayAppts=state.appointments.filter(a=>a.date===ds);
+          const isToday=ds===today;
+          const mOffset = Math.round((new Date(ds) - new Date(new Date().toDateString())) / 86400000);
+          return `<button data-action="noop" data-sadmin-day="${mOffset}" style="background:rgba(255,255,255,0.03);border:0.5px solid ${isToday?'rgba(201,168,76,0.5)':'rgba(255,255,255,0.05)'};border-radius:8px;padding:4px 2px;min-height:56px;text-align:center;cursor:pointer;width:100%;">
+            <div style="font-size:13px;font-weight:${isToday?700:400};color:${isToday?'#c9a84c':'rgba(255,255,255,0.6)'};">${d}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center;margin-top:3px;">
+              ${dayAppts.slice(0,3).map(a=>{ const c=apptColor(a); return `<div style="width:7px;height:7px;border-radius:50%;background:${c.dot};pointer-events:none;"></div>`; }).join('')}
+              ${dayAppts.length>3?`<div style="font-size:8px;color:rgba(255,255,255,0.25);pointer-events:none;">+${dayAppts.length-3}</div>`:''}
+            </div>
+          </button>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  // ── nav config: top row (right→left): יומן, תורים ממתינים, לקוחות ──
+  // ── bottom row: נתונים, סקירה, לוגים ──
+  const navRows = [
+    [
+      ['calendar',`<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="17" rx="3" stroke="#c9a84c" stroke-width="1.6" fill="none"/><path d="M3 9h18" stroke="#c9a84c" stroke-width="1.6" stroke-linecap="round"/><path d="M8 2v4M16 2v4" stroke="#c9a84c" stroke-width="1.6" stroke-linecap="round"/><rect x="7" y="13" width="3" height="3" rx="0.8" fill="#c9a84c"/><rect x="11" y="13" width="3" height="3" rx="0.8" fill="#c9a84c" opacity="0.6"/><rect x="7" y="17" width="3" height="2" rx="0.8" fill="#c9a84c" opacity="0.6"/></svg>`,'יומן','#c9a84c'],
+      ['pending',`<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M6 2h12M6 22h12" stroke="#c9a84c" stroke-width="1.6" stroke-linecap="round"/><path d="M6 2c0 6 6 8 6 10s-6 6-6 10" stroke="#c9a84c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M18 2c0 6-6 8-6 10s6 4 6 10" stroke="#c9a84c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="12" cy="17" r="1.5" fill="#c9a84c" opacity="0.8"/></svg>`,'תורים ממתינים לאישור','#c9a84c'],
+      ['users',`<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3.5" stroke="#c9a84c" stroke-width="1.6" fill="none"/><path d="M3 20c0-4 2.7-6 6-6s6 2 6 6" stroke="#c9a84c" stroke-width="1.6" stroke-linecap="round" fill="none"/><circle cx="17" cy="9" r="2.5" stroke="#c9a84c" stroke-width="1.4" fill="none" opacity="0.7"/><path d="M20 20c0-3-1.5-4.5-3.5-5" stroke="#c9a84c" stroke-width="1.4" stroke-linecap="round" opacity="0.7"/></svg>`,'לקוחות','#c9a84c'],
+    ],[
+      ['stats',`<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3" y="13" width="4" height="8" rx="1" fill="#c9a84c" opacity="0.5"/><rect x="10" y="8" width="4" height="13" rx="1" fill="#c9a84c" opacity="0.75"/><rect x="17" y="4" width="4" height="17" rx="1" fill="#c9a84c"/><path d="M3 22h18" stroke="#c9a84c" stroke-width="1.4" stroke-linecap="round"/></svg>`,'נתונים','#c9a84c'],
+      ['overview',`<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M3 10.5L12 3l9 7.5V21a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10.5z" stroke="#c9a84c" stroke-width="1.6" fill="none" stroke-linejoin="round"/><path d="M9 22V13h6v9" stroke="#c9a84c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,'סקירה','#c9a84c'],
+      ['logs',`<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="4" y="2" width="16" height="20" rx="2" stroke="#c9a84c" stroke-width="1.6" fill="none"/><path d="M8 7h8M8 11h8M8 15h5" stroke="#c9a84c" stroke-width="1.5" stroke-linecap="round"/></svg>`,'לוגים','#c9a84c'],
+    ]
+  ];
+
+  // ── popup modal ──
+  const modal = state.sadminModal;
+  let modalHtml = '';
+  if (modal) {
+    const a = modal.appt;
+    const svc = a ? SERVICES.find(s=>s.id===a.service) : null;
+    const fd = a ? formatDisplayDate(new Date(a.date+'T12:00:00')) : null;
+    const listAppts = (modal.type==='list' && modal.filter!=='users') ? state.appointments.filter(a=> modal.filter==='approved'?a.status==='approved': modal.filter==='rejected'?a.status==='rejected': modal.filter==='today'?a.date===today:a.status==='pending').slice().sort((a,b)=>(a.date+a.time)<(b.date+b.time)?-1:1) : null;
+
+    if (modal.type==='appt') {
+      modalHtml = `<div id="sadmin-appt-modal" style="position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.8);display:flex;align-items:flex-end;justify-content:center;">
+        <div style="background:#1a1a1a;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;border-top:2px solid rgba(255,152,0,0.4);">
+          <div style="text-align:center;width:32px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:0 auto 16px;"></div>
+          <div style="font-size:11px;color:rgba(255,152,0,0.8);letter-spacing:1px;margin-bottom:4px;">תור ממתין לאישור</div>
+          <div style="font-size:20px;font-weight:700;color:#fff;margin-bottom:4px;">${a.customer_name}</div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:16px;">${fd.date} ${fd.month} · ${a.time}${svc?' · '+svc.name:''}</div>
+          ${a.customer_phone ? `<div style="margin-bottom:16px;">${waLink(a.customer_phone, a.customer_phone)}</div>` : ''}
+          <div style="display:flex;gap:10px;">
+            <button data-action="noop" onclick="sadminCloseModal()" style="flex:1;padding:12px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.5);border-radius:12px;font-size:14px;cursor:pointer;">סגור</button>
+            <button data-action="noop" onclick="sadminApprove('${a.id}');return false;" style="flex:2;padding:12px;background:rgba(76,175,80,0.2);border:1px solid rgba(76,175,80,0.5);color:#66bb6a;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;">✓ אשר תור</button>
+          </div>
+        </div>
+      </div>`;
+    } else if (modal.type==='list') {
+      modalHtml = `<div id="sadmin-list-modal" style="position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:16px;">
+        <div style="background:#1a1a1a;border-radius:16px;padding:20px;width:100%;max-width:480px;max-height:80vh;overflow-y:auto;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="font-size:15px;font-weight:600;color:#fff;">${modal.filter==='approved'?'✅ תורים שאושרו':modal.filter==='rejected'?'❌ תורים שבוטלו':modal.filter==='today'?'📅 תורים היום':modal.filter==='users'?'👥 משתמשים':'⏳ ממתינים לאישור'}</div>
+            <button data-action="noop" onclick="sadminCloseModal()" style="background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.5);padding:5px 12px;border-radius:8px;font-size:13px;cursor:pointer;">✕</button>
+          </div>
+          ${modal.filter==='users' ? state.users.slice().sort((a,b)=>a.name.localeCompare(b.name,'he')).map(u=>`<div style="display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.07);margin-bottom:7px;"><div style="width:34px;height:34px;background:rgba(33,150,243,0.12);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#42a5f5;flex-shrink:0;">${u.name.charAt(0)}</div><div style="flex:1;"><div style="font-size:13px;color:#fff;font-weight:500;">${u.name}</div></div>${u.phone?waLink(u.phone,u.phone):''}</div>`).join('') : listAppts.length===0?`<div style="text-align:center;color:rgba(255,255,255,0.3);padding:20px;">אין תורים</div>`:listAppts.sort((a,b)=>b.date+b.time>a.date+a.time?1:-1).map(a=>{
+            const c=apptColor(a); const svc=SERVICES.find(s=>s.id===a.service);
+            const fd2=formatDisplayDate(new Date(a.date+'T12:00:00'));
+            return `<div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;background:${c.bg};border:0.5px solid ${c.border};margin-bottom:7px;">
+              <div style="width:7px;height:7px;border-radius:50%;background:${c.dot};flex-shrink:0;"></div>
+              <div style="flex:1;">
+                <div style="font-size:13px;color:#fff;font-weight:500;">${a.customer_name}</div>
+                <div style="font-size:11px;color:rgba(255,255,255,0.35);">${fd2.date} ${fd2.month} · ${a.time}${svc?' · '+svc.name:''}</div>
+              </div>
+              ${a.customer_phone?waLink(a.customer_phone,'💬'):''}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    }
+  }
+
+  return `
+  <div style="min-height:100vh;background:#0a0a0a;color:#fff;font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:480px;margin:0 auto;">
+    <!-- Header -->
+    <div style="background:rgba(10,10,10,0.95);backdrop-filter:blur(20px);border-bottom:0.5px solid rgba(255,80,80,0.15);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="background:rgba(255,80,80,0.12);border:1px solid rgba(255,80,80,0.3);border-radius:6px;padding:3px 8px;font-size:10px;font-weight:800;color:#ff6070;letter-spacing:2px;">SADMIN</div>
+        <span style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.8);">לוח בקרה</span>
+      </div>
+      <button data-action="logout" style="background:transparent;border:none;color:rgba(255,255,255,0.3);font-size:13px;cursor:pointer;">יציאה</button>
+    </div>
+
+    <div style="padding:14px;">
+      <!-- Nav Grid 2 rows × 3 cols -->
+      ${navRows.map(row=>`
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+          ${row.map(([t,icon,label,color])=>`
+            <button data-action="owner-tab" data-tab="${t}" style="padding:14px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:${tab===t?'rgba(201,168,76,0.12)':'rgba(255,255,255,0.03)'};border:${tab===t?'1.5px solid #c9a84c':'0.5px solid rgba(255,255,255,0.07)'};border-radius:14px;cursor:pointer;min-height:75px;">
+              <div style="display:flex;align-items:center;justify-content:center;">${icon}</div>
+              <div style="font-size:10px;font-weight:600;color:${tab===t?'#c9a84c':'rgba(255,255,255,0.4)'};text-align:center;line-height:1.3;">${label}</div>
+            </button>
+          `).join('')}
+        </div>
+      `).join('')}
+
+      <!-- Legend -->
+      <div style="display:flex;gap:12px;margin-bottom:14px;justify-content:center;">
+        ${[['#4caf50','אושר'],['#ff9800','ממתין'],['#f44336','בוטל']].map(([c,l])=>`
+          <div style="display:flex;align-items:center;gap:5px;">
+            <div style="width:7px;height:7px;border-radius:50%;background:${c};"></div>
+            <span style="font-size:11px;color:rgba(255,255,255,0.35);">${l}</span>
+          </div>`).join('')}
+      </div>
+
+      <!-- Content -->
+      ${tab==='calendar' ? `
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          ${[['day','יום'],['week','שבוע'],['month','חודש']].map(([v,l])=>`
+            <button data-action="sadmin-calview" data-view="${v}" style="flex:1;padding:8px;border-radius:10px;border:${calView===v?'1.5px solid #c9a84c':'0.5px solid rgba(255,255,255,0.1)'};background:${calView===v?'rgba(201,168,76,0.1)':'transparent'};color:${calView===v?'#c9a84c':'rgba(255,255,255,0.35)'};font-size:13px;font-weight:${calView===v?600:400};cursor:pointer;">${l}</button>
+          `).join('')}
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <button data-action="sadmin-cal-prev" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);color:#fff;width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:18px;">‹</button>
+          <span style="font-size:13px;font-weight:500;color:rgba(255,255,255,0.65);">${getCalTitle()}</span>
+          <button data-action="sadmin-cal-next" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);color:#fff;width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:18px;">›</button>
+        </div>
+        ${calView==='day' ? renderDayView() : calView==='week' ? renderWeekView() : renderMonthView()}
+
+      ` : tab==='pending' ? `
+        <div style="font-size:11px;color:rgba(255,152,0,0.7);margin-bottom:10px;">${pending} תורים ממתינים לאישור</div>
+        ${state.appointments.filter(a=>a.status==='pending').length===0
+          ? `<div style="text-align:center;padding:40px;color:rgba(255,255,255,0.2);font-size:14px;">🎉 אין תורים הממתינים לאישור</div>`
+          : state.appointments.filter(a=>a.status==='pending').sort((a,b)=>a.date+a.time>b.date+b.time?1:-1).map(a=>{
+            const svc=SERVICES.find(s=>s.id===a.service);
+            const fd=formatDisplayDate(new Date(a.date+'T12:00:00'));
+            return `<button data-sadmin-appt-id="${a.id}" style="width:100%;display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:13px;background:rgba(255,152,0,0.08);border:0.5px solid rgba(255,152,0,0.3);margin-bottom:8px;cursor:pointer;text-align:right;">
+              <div style="width:8px;height:8px;border-radius:50%;background:#ff9800;flex-shrink:0;"></div>
+              <div style="flex:1;">
+                <div style="font-size:14px;color:#fff;font-weight:600;">${a.customer_name}</div>
+                <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:2px;">${fd.date} ${fd.month} · ${a.time}${svc?' · '+svc.name:''}</div>
+              </div>
+              <div style="font-size:18px;color:rgba(255,255,255,0.2);">›</div>
+            </button>`;
+          }).join('')}
+
+      ` : tab==='users' ? `
+        <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-bottom:10px;">${users} לקוחות · מסודר א-ב</div>
+        ${state.users.slice().sort((a,b)=>a.name.localeCompare(b.name,'he')).map(u=>{
+          const myAppts=state.appointments.filter(a=>a.username===u.username);
+          return `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:13px;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.07);margin-bottom:7px;">
+            <div style="width:36px;height:36px;background:rgba(76,175,80,0.1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#66bb6a;flex-shrink:0;">${u.name.charAt(0)}</div>
+            <div style="flex:1;">
+              <div style="font-size:14px;color:#fff;font-weight:500;">${u.name}</div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:1px;">${myAppts.length} תורים</div>
+            </div>
+            ${u.phone ? waLink(u.phone, u.phone) : ''}
+          </div>`;
+        }).join('')}
+
+      ` : tab==='stats' ? `
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <button data-action="noop" data-sadmin-filter="pending" style="width:100%;display:flex;align-items:center;gap:14px;padding:16px;border-radius:14px;background:rgba(255,152,0,0.12);border:0.5px solid rgba(255,152,0,0.35);cursor:pointer;text-align:right;">
+            <div style="font-size:24px;">⏳</div>
+            <div style="flex:1;text-align:right;">
+              <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:3px;">ממתינים לאישור</div>
+              <div style="font-size:28px;font-weight:700;color:#ff9800;line-height:1;">${pending}</div>
+            </div>
+            <div style="font-size:18px;color:rgba(255,255,255,0.2);">›</div>
+          </button>
+          <button data-action="noop" data-sadmin-filter="approved" style="width:100%;display:flex;align-items:center;gap:14px;padding:16px;border-radius:14px;background:rgba(76,175,80,0.1);border:0.5px solid rgba(76,175,80,0.35);cursor:pointer;text-align:right;">
+            <div style="font-size:24px;">✅</div>
+            <div style="flex:1;text-align:right;">
+              <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:3px;">תורים שאושרו</div>
+              <div style="font-size:28px;font-weight:700;color:#4caf50;line-height:1;">${approved}</div>
+            </div>
+            <div style="font-size:18px;color:rgba(255,255,255,0.2);">›</div>
+          </button>
+          <button data-action="noop" data-sadmin-filter="rejected" style="width:100%;display:flex;align-items:center;gap:14px;padding:16px;border-radius:14px;background:rgba(244,67,54,0.08);border:0.5px solid rgba(244,67,54,0.3);cursor:pointer;text-align:right;">
+            <div style="font-size:24px;">❌</div>
+            <div style="flex:1;text-align:right;">
+              <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:3px;">תורים שבוטלו</div>
+              <div style="font-size:28px;font-weight:700;color:#f44336;line-height:1;">${cancelled}</div>
+            </div>
+            <div style="font-size:18px;color:rgba(255,255,255,0.2);">›</div>
+          </button>
+        </div>
+
+      ` : tab==='overview' ? `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+          <button data-action="noop" data-sadmin-filter="today" style="background:rgba(201,168,76,0.08);border:0.5px solid rgba(201,168,76,0.2);border-radius:14px;padding:16px;text-align:center;cursor:pointer;">
+            <div style="font-size:20px;margin-bottom:4px;">📅</div>
+            <div style="font-size:28px;font-weight:700;color:#c9a84c;">${state.appointments.filter(a=>a.date===today).length}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:3px;">תורים היום</div>
+          </button>
+          <button data-action="noop" data-sadmin-filter="pending" style="background:rgba(255,152,0,0.08);border:0.5px solid rgba(255,152,0,0.2);border-radius:14px;padding:16px;text-align:center;cursor:pointer;">
+            <div style="font-size:20px;margin-bottom:4px;">⏳</div>
+            <div style="font-size:28px;font-weight:700;color:#ff9800;">${pending}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:3px;">ממתינים</div>
+          </button>
+          <button data-action="noop" data-sadmin-filter="approved" style="background:rgba(76,175,80,0.08);border:0.5px solid rgba(76,175,80,0.2);border-radius:14px;padding:16px;text-align:center;cursor:pointer;">
+            <div style="font-size:20px;margin-bottom:4px;">✅</div>
+            <div style="font-size:28px;font-weight:700;color:#4caf50;">${approved}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:3px;">אושרו</div>
+          </button>
+          <button data-action="noop" data-sadmin-filter="users" style="background:rgba(33,150,243,0.08);border:0.5px solid rgba(33,150,243,0.2);border-radius:14px;padding:16px;text-align:center;cursor:pointer;">
+            <div style="font-size:20px;margin-bottom:4px;">👥</div>
+            <div style="font-size:28px;font-weight:700;color:#2196f3;">${users}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:3px;">משתמשים</div>
+          </button>
+        </div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:8px;">פעילות אחרונה</div>
+        ${state.logs.slice(0,6).map(l=>`
+          <div style="padding:9px 12px;border-radius:10px;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.05);margin-bottom:5px;display:flex;align-items:center;gap:10px;">
+            <div style="flex:1;font-size:12px;color:rgba(255,255,255,0.5);">${l.action} · ${l.username||''}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.2);">${l.created_at?.slice(11,16)||''}</div>
+          </div>`).join('')}
+
+      ` : `
+        <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:10px;">${state.logs.length} רשומות</div>
+        ${state.logs.map(l=>`
+          <div style="padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.05);margin-bottom:5px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+              <span style="font-size:13px;color:#fff;font-weight:500;">${l.action}</span>
+              <span style="font-size:10px;color:rgba(255,255,255,0.25);">${l.username||''}</span>
+            </div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.3);">${l.details||''}</div>
+          </div>`).join('')}
+      `}
+    </div>
+    <div style="height:30px;"></div>
+  </div>
+  ${modalHtml}`;
+}
+
+
 // אתחול — אם יש סשן שמור, טען נתונים אוטומטית
 async function init() {
   render(); // הצג מיד (עם loading אם צריך)
   if (state.user) {
     try {
+      if (state.user.role==='sadmin') { doSadminLoad(); return; }
       const [a, v] = await Promise.all([getAppointments(), getAvailability().catch(()=>[])]);
       state.appointments = a;
       state.availability = v;
@@ -1163,20 +1558,51 @@ async function init() {
     render();
   }
 }
-// Splash screen – set logo and auto-hide after 3s
+// Splash screen – set logo and auto-hide after 3.8s
 (function() {
   const splashEl = document.getElementById('splash');
   const splashLogo = document.getElementById('splash-logo');
-  if (splashLogo) splashLogo.src = IMG;
+  if (splashLogo) {
+    splashLogo.src = IMG;
+    // Fade in logo after 1 second
+    setTimeout(function() { splashLogo.style.opacity = '1'; }, 1000);
+  }
   setTimeout(function() {
     if (splashEl) {
       splashEl.style.opacity = '0';
       setTimeout(function() { splashEl.style.display = 'none'; }, 600);
     }
-  }, 3000);
+  }, 3800);
 })();
 
+// Global sadmin helpers (avoid event delegation issues)
+function sadminOpenList(filter) {
+  state.sadminModal = { type: 'list', filter: filter };
+  render();
+}
+function sadminCloseModal() {
+  state.sadminModal = null;
+  render();
+}
+function sadminOpenAppt(id) {
+  const appt = state.appointments.find(a => a.id === id);
+  state.sadminModal = { type: 'appt', appt: appt };
+  render();
+}
+function sadminApprove(id) {
+  state.sadminModal = null;
+  doUpdateApptStatus(id, 'approved', 'התור שלך אושר! נשמח לראותך.');
+}
+
 init();
+
+// Close sadmin modals on backdrop click
+document.addEventListener('click', function(e) {
+  const apptModal = document.getElementById('sadmin-appt-modal');
+  const listModal = document.getElementById('sadmin-list-modal');
+  if (apptModal && e.target === apptModal) { sadminCloseModal(); }
+  if (listModal && e.target === listModal) { sadminCloseModal(); }
+});
 
 // Polling — בודק עדכונים כל 15 שניות כשהמשתמש מחובר
 setInterval(async () => {
@@ -1214,6 +1640,21 @@ document.addEventListener('click', function(e) {
   }
   const action = btn.dataset.action;
   if (!action) return;
+  if (action==='modal-inner'||action==='noop') {
+    // check for sadmin custom attributes
+    const sf = btn.dataset.sadminFilter;
+    const sa = btn.dataset.sadminApptId;
+    const sd = btn.dataset.sadminDay;
+    if (sd !== undefined) {
+      state.sadminCalView = 'day';
+      state.calendarWeekOffset = parseInt(sd);
+      render();
+      return;
+    }
+    if (sf) { state.sadminModal={type:'list',filter:sf}; render(); }
+    else if (sa) { const ap=state.appointments.find(a=>a.id===sa); state.sadminModal={type:'appt',appt:ap}; render(); }
+    return;
+  }
   playClick();
   handleAction({ currentTarget: btn });
 });
