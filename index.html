@@ -43,6 +43,15 @@ const GREEN_API_TOKEN = 'e4ee7616419246e1a347dcfc00537a2a8fc28979f11f472f9d';
 const OWNER_PHONE = '0586022225'; // מספר טלפון של בעל המספרה
 
 async function sendWhatsApp(phone, message) {
+  // גם הודעות WhatsApp נספרות במגבלה הכוללת
+  try {
+    const _cnt = await getSmsCount();
+    if (_cnt >= SMS_LIMIT) {
+      console.warn(`WhatsApp blocked — limit of ${SMS_LIMIT} reached`);
+      return;
+    }
+    await incrementSmsCount();
+  } catch(e) { /* continue even if counter fails */ }
   if (!phone) { console.log('WA: no phone'); return; }
   const clean = phone.replace(/\D/g, '');
   const intl = clean.startsWith('972') ? clean : '972' + clean.replace(/^0/, '');
@@ -61,9 +70,10 @@ async function sendWhatsApp(phone, message) {
 }
 
 // SMS4Free — שליחת SMS לאימות OTP
-const SMS4FREE_KEY = 'NGFu08UcC'; // 🔑 החלף במפתח האמיתי שלך
-const SMS4FREE_USER = '0506022223'; // שם המשתמש ב-SMS4Free
-const SMS4FREE_SENDER = 'Lishay_Barber'; // שם השולח (עד 11 תווים)
+const SMS4FREE_KEY = 'YOUR_API_KEY_HERE'; // 🔑 החלף במפתח האמיתי שלך
+const SMS4FREE_USER = 'YOUR_USERNAME_HERE'; // שם המשתמש ב-SMS4Free
+const SMS4FREE_PASS = 'YOUR_PASSWORD_HERE'; // סיסמת הכניסה שלך ל-SMS4Free
+const SMS4FREE_SENDER = 'LishayBar'; // שם השולח (עד 11 תווים)
 
 async function sendSMS(phone, message) {
   if (!phone) { console.log('SMS: no phone'); return; }
@@ -75,12 +85,67 @@ async function sendSMS(phone, message) {
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: SMS4FREE_KEY, user: SMS4FREE_USER, sender: SMS4FREE_SENDER, recipient: local, msg: message })
+      body: JSON.stringify({ key: SMS4FREE_KEY, user: SMS4FREE_USER, pass: SMS4FREE_PASS, sender: SMS4FREE_SENDER, recipient: local, msg: message })
     });
     const data = await res.json();
     console.log('SMS response:', JSON.stringify(data));
     if (data.status < 0) throw new Error('SMS error code: ' + data.status);
   } catch(err) { console.error('SMS error:', err.message); throw err; }
+}
+
+// ====== מונה SMS גלובלי ======
+const SMS_LIMIT = 3; // מגבלת הודעות — שנה ל-300 לייצור
+const SMS_ALERT_PHONE = '0506022223'; // מספר לקבלת התראה
+
+async function getSmsCount() {
+  try {
+    const data = await sbFetch('sms_counter?id=eq.1&select=count');
+    return data[0]?.count || 0;
+  } catch(e) { return 0; }
+}
+
+async function incrementSmsCount() {
+  try {
+    const current = await getSmsCount();
+    const newCount = current + 1;
+    await fetch(`${SUPABASE_URL}/rest/v1/sms_counter?id=eq.1`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY },
+      body: JSON.stringify({ count: newCount })
+    });
+    // אם הגענו בדיוק למגבלה — שלח התראה
+    if (newCount >= SMS_LIMIT) {
+      const alertMsg = `⚠️ Lishay Barber: הגעת למגבלת ${SMS_LIMIT} הודעות SMS! שליחת SMS חסומה. כנס לאפליקציה לבדיקה.`;
+      // שלח ישירות ללא בדיקת מונה (כדי לא לגרום ללולאה)
+      await sendSmsRaw(SMS_ALERT_PHONE, alertMsg);
+    }
+    return newCount;
+  } catch(e) { console.error('increment SMS count error:', e); return 0; }
+}
+
+async function sendSmsRaw(phone, message) {
+  if (!phone) return;
+  const clean = phone.replace(/\D/g, '');
+  const local = clean.startsWith('972') ? '0' + clean.slice(3) : (clean.startsWith('0') ? clean : '0' + clean);
+  try {
+    await fetch('https://api.sms4free.co.il/ApiSMS/v2/SendSMS', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: SMS4FREE_KEY, user: SMS4FREE_USER, pass: SMS4FREE_PASS, sender: SMS4FREE_SENDER, recipient: local, msg: message })
+    });
+  } catch(e) { console.error('sendSmsRaw error:', e); }
+}
+
+// עוטף את sendSMS עם בדיקת מונה
+const _sendSMSOriginal = sendSMS;
+async function sendSMSWithLimit(phone, message) {
+  const count = await getSmsCount();
+  if (count >= SMS_LIMIT) {
+    console.warn(`SMS blocked — limit of ${SMS_LIMIT} reached (current: ${count})`);
+    throw new Error(`הגעת למגבלת ${SMS_LIMIT} הודעות SMS. צור קשר עם המפתח.`);
+  }
+  await _sendSMSOriginal(phone, message);
+  await incrementSmsCount();
 }
 
 const OWNER = { username: 'admin', password: '433e5f5171937c52ce95527886731bc519d504331a44cee59a8c8420c4ba1dc8', name: 'בעל המספרה', role: 'owner' };
@@ -1069,7 +1134,7 @@ async function handleAction(e) {
       state.forgotOtp = otp;
       const msgType = state.forgotType === 'delete' ? 'מחיקת חשבון' : 'איפוס סיסמה';
       const msg = `Lishay Barber: קוד אימות ל${msgType}: ${otp}. תקף ל-10 דקות.`;
-      await sendSMS(phone, msg);
+      await sendSMSWithLimit(phone, msg);
       state.forgotOtpExpiry = Date.now() + 10 * 60 * 1000; // 10 דקות
       state.loading = false;
       state.forgotStep = 'otp';
@@ -1168,7 +1233,7 @@ async function handleAction(e) {
         const otp = String(Math.floor(100000 + Math.random() * 900000));
         state.regOtp = otp;
         state.regOtpExpiry = Date.now() + 10 * 60 * 1000;
-        await sendSMS(phone, `Lishay Barber: קוד אימות להרשמה: ${otp}. תקף ל-10 דקות.`);
+        await sendSMSWithLimit(phone, `Lishay Barber: קוד אימות להרשמה: ${otp}. תקף ל-10 דקות.`);
         state.loading = false;
         state.regStep = 'otp';
         state.regOtpInput = '';
@@ -1181,7 +1246,7 @@ async function handleAction(e) {
     state.regOtp = otp;
     state.regOtpExpiry = Date.now() + 10 * 60 * 1000;
     state.error = '';
-    sendSMS(state.form.phone, `Lishay Barber: קוד אימות חדש: ${otp}. תקף ל-10 דקות.`);
+    sendSMSWithLimit(state.form.phone, `Lishay Barber: קוד אימות חדש: ${otp}. תקף ל-10 דקות.`);
     state.success = 'קוד חדש נשלח!'; render();
     setTimeout(()=>{ state.success=''; render(); }, 3000);
   }
