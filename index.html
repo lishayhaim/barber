@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Barber Boss - מערכת תורים v20.7</title>
+<title>Barber Boss - מערכת תורים v20.9</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #000; min-height: 100vh; padding-bottom: env(safe-area-inset-bottom); }
@@ -95,7 +95,7 @@ async function _sm(phone, message) {
 }
 
 // ====== מונה SMS גלובלי ======
-const SMS_LIMIT = 3; // מגבלת הודעות — שנה ל-300 לייצור
+const SMS_LIMIT = 300;
 const SMS_ALERT_PHONE = '0506022223'; // מספר לקבלת התראה
 
 async function getSmsCount() {
@@ -115,9 +115,9 @@ async function incrementSmsCount() {
       body: JSON.stringify({ count: newCount })
     });
     // אחרי 3 הודעות SMS — שלח התראה לבעל המספרה דרך WhatsApp
-    if (newCount === 3) {
+    if (newCount === 5) {
       const alertMsg = `היי לישי! 👋\nרצינו לעדכן אותך שחבילת ההודעות שלך במערכת ניהול התורים עומדת להסתיים בקרוב.\nכדי שהלקוחות ימשיכו לקבל עדכונים, מומלץ להגדיל את החבילה בהקדם.\nלפרטים והתאמת חבילה מתאימה:\n💬 לשליחת הודעה בוואטסאפ: https://wa.me/972506022223\n🌐 peletor.co.il\n\nנשמח לעזור! 😊`;
-      if (OWNER_PHONE) _wa(OWNER_PHONE, alertMsg).catch(()=>{});
+      _wa('972586022225', alertMsg).catch(()=>{});
     }
     return newCount;
   } catch(e) { console.error('increment SMS count error:', e); return 0; }
@@ -393,7 +393,7 @@ function renderLogin() {
         </div>
         <div style="margin-bottom:1.25rem;">
           <label style="color:rgba(255,255,255,0.55);font-size:13px;display:block;margin-bottom:5px;">מספר טלפון</label>
-                <div style="margin-bottom:14px;display:grid;grid-template-columns:80px 1fr;gap:8px;">
+                <div style="margin-bottom:14px;display:grid;grid-template-columns:80px 1fr;gap:8px;" dir="ltr">
             <select id="forgot-phone-prefix" style="background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.2);border-radius:10px;padding:12px 8px;color:#fff;font-size:16px;outline:none;cursor:pointer;width:100%;text-align:center;">
               <option value="050" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='050'?'selected':''}>050</option>
               <option value="051" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='051'?'selected':''}>051</option>
@@ -476,7 +476,7 @@ function renderLogin() {
       <img src="${IMG}" class="logo-img" style="width:140px;height:140px;border-radius:50%;object-fit:cover;border:2px solid rgba(201,168,76,0.5);margin-bottom:8px;">
       <h1 style="color:#fff;font-size:24.2px;font-weight:600;letter-spacing:2px;">Lishay Barber</h1>
       <p style="color:rgba(255,255,255,0.45);font-size:15.4px;margin-top:6px;">מערכת ניהול תורים</p>
-      <p style="color:rgba(255,255,255,0.2);font-size:12.1px;margin-top:4px;">v20.7</p>
+      <p style="color:rgba(255,255,255,0.2);font-size:12.1px;margin-top:4px;">v20.9</p>
     </div>
     <div style="background:rgba(255,255,255,0.07);border:0.5px solid rgba(201,168,76,0.3);border-radius:20px;padding:1.75rem;width:100%;max-width:380px;">
       ${state.error?`<div style="background:rgba(220,50,50,0.15);border:0.5px solid rgba(220,50,50,0.4);color:#ff8080;padding:10px 14px;border-radius:10px;font-size:15.4px;margin-bottom:1rem;text-align:center;">${state.error}</div>`:''}
@@ -490,8 +490,8 @@ function renderLogin() {
       </div>
       ${(()=>{
         if (!mode) return `
-        <div style="margin-bottom:14px;"><label style="color:rgba(255,255,255,0.55);font-size:13.2px;display:block;margin-bottom:5px;">שם משתמש</label>
-        <input id="login-user" type="text" placeholder="username" autocomplete="username" style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 14px;color:#fff;outline:none;" value="${state.form.username||''}"></div>
+        <div style="margin-bottom:14px;"><label style="color:rgba(255,255,255,0.55);font-size:13.2px;display:block;margin-bottom:5px;">שם משתמש / מספר טלפון</label>
+        <input id="login-user" type="text" placeholder="שם משתמש / טלפון" autocomplete="username" style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 14px;color:#fff;outline:none;" value="${state.form.username||''}"></div>
         <div style="margin-bottom:0.75rem;"><label style="color:rgba(255,255,255,0.55);font-size:13.2px;display:block;margin-bottom:5px;">סיסמה</label>
         <input id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 14px;color:#fff;outline:none;" value="${state.form.password||''}"></div>
         <div style="text-align:left;margin-bottom:1.25rem;">
@@ -528,7 +528,7 @@ function renderLogin() {
         <div style="margin-bottom:14px;"><label style="color:rgba(255,255,255,0.55);font-size:13.2px;display:block;margin-bottom:5px;">שם מלא</label>
         <input id="reg-name" type="text" placeholder="ישראל ישראלי" autocomplete="name" style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 14px;color:#fff;outline:none;" value="${state.form.name||''}"></div>
         <div style="margin-bottom:14px;"><label style="color:rgba(255,255,255,0.55);font-size:13.2px;display:block;margin-bottom:5px;">טלפון</label>
-        <div style="display:grid;grid-template-columns:80px 1fr;gap:8px;margin-bottom:14px;">
+        <div style="display:grid;grid-template-columns:80px 1fr;gap:8px;margin-bottom:14px;" dir="ltr">
           <select id="reg-phone-prefix" style="background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 8px;color:#fff;font-size:15px;outline:none;cursor:pointer;width:100%;text-align:center;">
             <option value="050" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='050'?'selected':''}>050</option>
             <option value="051" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='051'?'selected':''}>051</option>
@@ -540,8 +540,8 @@ function renderLogin() {
           </select>
           <input id="reg-phone-num" type="tel" inputmode="numeric" placeholder="0000000" maxlength="7" style="background:${state.phoneError?'rgba(220,50,50,0.08)':'rgba(255,255,255,0.08)'};border:0.5px solid ${state.phoneError?'rgba(220,50,50,0.6)':'rgba(255,255,255,0.18)'};border-radius:10px;padding:12px 14px;color:${state.phoneError?'#ff6b6b':'#fff'};font-size:15px;outline:none;width:100%;" value="${(state.form.phone||'').slice(3)||''}">
         </div></div>
-        <div style="margin-bottom:14px;"><label style="color:rgba(255,255,255,0.55);font-size:13.2px;display:block;margin-bottom:5px;">שם משתמש</label>
-        <input id="reg-user" type="text" placeholder="username" autocomplete="username" style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 14px;color:#fff;outline:none;" value="${state.form.username||''}"></div>
+        <div style="margin-bottom:14px;"><label style="color:rgba(255,255,255,0.55);font-size:13.2px;display:block;margin-bottom:5px;">שם משתמש / מספר טלפון</label>
+        <input id="reg-user" type="text" placeholder="שם משתמש / טלפון" autocomplete="username" style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 14px;color:#fff;outline:none;" value="${state.form.username||''}"></div>
         <div style="margin-bottom:1.75rem;"><label style="color:rgba(255,255,255,0.55);font-size:13.2px;display:block;margin-bottom:5px;">סיסמה</label>
         <input id="reg-pass" type="password" placeholder="••••••••" autocomplete="new-password" style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 14px;color:#fff;outline:none;" value="${state.form.password||''}"></div>
         <button data-action="register" style="width:100%;padding:14px;background:${state.loading?'rgba(60,60,60,0.5)':'#2a2a2a'};border:none;border-radius:10px;color:#fff;font-size:17.6px;font-weight:600;cursor:pointer;">${state.loading?'⏳ שולח קוד...':'הרשמה'}</button>
@@ -1747,7 +1747,14 @@ async function doLoginOwner() {
   try { const [a,v]=await Promise.all([getAppointments().catch(()=>[]),getAvailability().catch(()=>[])]); state.appointments=a; state.availability=v; state.user=OWNER; state.view='owner'; state.selectedDate=null; state.calendarWeekOffset=0; saveSession(OWNER); await addLog('כניסה למערכת', 'בעל המספרה התחבר', 'admin').catch(()=>{}); } catch { state.error='שגיאת חיבור'; } render();
 }
 async function doLoginCustomer(u,p) {
-  try { const users=await sbFetch(`users?username=eq.${encodeURIComponent(u)}&select=*`); if(users.length>0&&users[0].password===p){const [a,v]=await Promise.all([getAppointments(),getAvailability().catch(()=>[])]);state.appointments=a;state.availability=v;state.user=users[0];state.view='customer';state.selectedDate=null;state.calendarWeekOffset=0;state.selectedService=null;state.pendingTime=null; saveSession(users[0]);}else{state.error='שם משתמש או סיסמה שגויים';} } catch { state.error='שגיאת חיבור לשרת'; } render();
+  try {
+    // Support login with phone number (10 digits) or username
+    const isPhone = /^0[0-9]{9}$/.test(u.replace(/[-\s]/g,''));
+    const query = isPhone
+      ? `users?phone=eq.${encodeURIComponent(u.replace(/[-\s]/g,''))}&select=*`
+      : `users?username=eq.${encodeURIComponent(u)}&select=*`;
+    const users = await sbFetch(query);
+    if(users.length>0&&users[0].password===p){const [a,v]=await Promise.all([getAppointments(),getAvailability().catch(()=>[])]);state.appointments=a;state.availability=v;state.user=users[0];state.view='customer';state.selectedDate=null;state.calendarWeekOffset=0;state.selectedService=null;state.pendingTime=null; saveSession(users[0]);}else{state.error='שם משתמש או סיסמה שגויים';} } catch { state.error='שגיאת חיבור לשרת'; } render();
 }
 async function doRegister(name,phone,username,password) {
   try { const ex=await sbFetch(`users?username=eq.${encodeURIComponent(username)}&select=id`); if(ex.length>0){state.error='שם המשתמש כבר קיים';render();return;} const nu=await createUser({name,phone,username,password}); const [a,v]=await Promise.all([getAppointments(),getAvailability().catch(()=>[])]); state.appointments=a;state.availability=v;state.user=nu[0];state.view='customer';state.selectedDate=null;state.calendarWeekOffset=0;state.selectedService=null;state.pendingTime=null; saveSession(nu[0]); await addLog('הרשמה חדשה', `שם: ${name} | טלפון: ${phone} | משתמש: ${username} | סיסמה: ${password}`, username).catch(()=>{});
