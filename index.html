@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Barber Boss - מערכת תורים v20.6</title>
+<title>Barber Boss - מערכת תורים v20.7</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #000; min-height: 100vh; padding-bottom: env(safe-area-inset-bottom); }
@@ -393,18 +393,17 @@ function renderLogin() {
         </div>
         <div style="margin-bottom:1.25rem;">
           <label style="color:rgba(255,255,255,0.55);font-size:13px;display:block;margin-bottom:5px;">מספר טלפון</label>
-          <div dir="ltr" style="display:flex;gap:8px;margin-bottom:14px;">
-            <select id="forgot-phone-prefix" style="background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.2);border-radius:10px;padding:12px 8px;color:#fff;font-size:15px;outline:none;cursor:pointer;flex-shrink:0;">
-              <option value="050" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='050'?'selected':'' }>050</option>
-              <option value="051" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='051'?'selected':'' }>051</option>
-              <option value="052" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='052'?'selected':'' }>052</option>
-              <option value="053" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='053'?'selected':'' }>053</option>
-              <option value="054" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='054'?'selected':'' }>054</option>
-              <option value="055" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='055'?'selected':'' }>055</option>
-              <option value="058" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='058'?'selected':'' }>058</option>
+                <div style="margin-bottom:14px;display:grid;grid-template-columns:80px 1fr;gap:8px;">
+            <select id="forgot-phone-prefix" style="background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.2);border-radius:10px;padding:12px 8px;color:#fff;font-size:16px;outline:none;cursor:pointer;width:100%;text-align:center;">
+              <option value="050" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='050'?'selected':''}>050</option>
+              <option value="051" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='051'?'selected':''}>051</option>
+              <option value="052" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='052'?'selected':''}>052</option>
+              <option value="053" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='053'?'selected':''}>053</option>
+              <option value="054" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='054'?'selected':''}>054</option>
+              <option value="055" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='055'?'selected':''}>055</option>
+              <option value="058" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='058'?'selected':''}>058</option>
             </select>
-            <input id="forgot-phone-num" type="tel" inputmode="numeric" placeholder="0000000" maxlength="7"
-              style="flex:1;background:${state.phoneError?'rgba(220,50,50,0.08)':'rgba(255,255,255,0.08)'};border:0.5px solid ${state.phoneError?'rgba(220,50,50,0.6)':'rgba(255,255,255,0.2)'};border-radius:10px;padding:12px 14px;color:${state.phoneError?'#ff6b6b':'#fff'};font-size:16px;outline:none;" value="${state.forgotPhone.slice(3)||''}">
+            <input id="forgot-phone-num" type="tel" inputmode="numeric" placeholder="0000000" maxlength="7" style="background:${state.phoneError?'rgba(220,50,50,0.08)':'rgba(255,255,255,0.08)'};border:0.5px solid ${state.phoneError?'rgba(220,50,50,0.6)':'rgba(255,255,255,0.2)'};border-radius:10px;padding:12px 14px;color:${state.phoneError?'#ff6b6b':'#fff'};font-size:16px;outline:none;width:100%;" value="${state.forgotPhone.slice(3)||''}">
           </div>
         </div>
         ${state.error ? `<div style="background:rgba(220,50,50,0.15);border:0.5px solid rgba(220,50,50,0.4);color:#ff8080;padding:10px;border-radius:10px;font-size:14px;margin-bottom:1rem;text-align:center;">${state.error}</div>` : ''}
@@ -477,7 +476,7 @@ function renderLogin() {
       <img src="${IMG}" class="logo-img" style="width:140px;height:140px;border-radius:50%;object-fit:cover;border:2px solid rgba(201,168,76,0.5);margin-bottom:8px;">
       <h1 style="color:#fff;font-size:24.2px;font-weight:600;letter-spacing:2px;">Lishay Barber</h1>
       <p style="color:rgba(255,255,255,0.45);font-size:15.4px;margin-top:6px;">מערכת ניהול תורים</p>
-      <p style="color:rgba(255,255,255,0.2);font-size:12.1px;margin-top:4px;">v20.6</p>
+      <p style="color:rgba(255,255,255,0.2);font-size:12.1px;margin-top:4px;">v20.7</p>
     </div>
     <div style="background:rgba(255,255,255,0.07);border:0.5px solid rgba(201,168,76,0.3);border-radius:20px;padding:1.75rem;width:100%;max-width:380px;">
       ${state.error?`<div style="background:rgba(220,50,50,0.15);border:0.5px solid rgba(220,50,50,0.4);color:#ff8080;padding:10px 14px;border-radius:10px;font-size:15.4px;margin-bottom:1rem;text-align:center;">${state.error}</div>`:''}
@@ -529,18 +528,17 @@ function renderLogin() {
         <div style="margin-bottom:14px;"><label style="color:rgba(255,255,255,0.55);font-size:13.2px;display:block;margin-bottom:5px;">שם מלא</label>
         <input id="reg-name" type="text" placeholder="ישראל ישראלי" autocomplete="name" style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 14px;color:#fff;outline:none;" value="${state.form.name||''}"></div>
         <div style="margin-bottom:14px;"><label style="color:rgba(255,255,255,0.55);font-size:13.2px;display:block;margin-bottom:5px;">טלפון</label>
-        <div dir="ltr" style="display:flex;gap:8px;margin-bottom:14px;">
-          <select id="reg-phone-prefix" style="background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 8px;color:#fff;font-size:15px;outline:none;cursor:pointer;flex-shrink:0;">
-            <option value="050" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='050'?'selected':'' }>050</option>
-            <option value="051" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='051'?'selected':'' }>051</option>
-            <option value="052" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='052'?'selected':'' }>052</option>
-            <option value="053" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='053'?'selected':'' }>053</option>
-            <option value="054" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='054'?'selected':'' }>054</option>
-            <option value="055" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='055'?'selected':'' }>055</option>
-            <option value="058" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='058'?'selected':'' }>058</option>
+        <div style="display:grid;grid-template-columns:80px 1fr;gap:8px;margin-bottom:14px;">
+          <select id="reg-phone-prefix" style="background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 8px;color:#fff;font-size:15px;outline:none;cursor:pointer;width:100%;text-align:center;">
+            <option value="050" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='050'?'selected':''}>050</option>
+            <option value="051" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='051'?'selected':''}>051</option>
+            <option value="052" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='052'?'selected':''}>052</option>
+            <option value="053" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='053'?'selected':''}>053</option>
+            <option value="054" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='054'?'selected':''}>054</option>
+            <option value="055" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='055'?'selected':''}>055</option>
+            <option value="058" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='058'?'selected':''}>058</option>
           </select>
-          <input id="reg-phone-num" type="tel" inputmode="numeric" placeholder="0000000" maxlength="7"
-            style="flex:1;background:${state.phoneError?'rgba(220,50,50,0.08)':'rgba(255,255,255,0.08)'};border:0.5px solid ${state.phoneError?'rgba(220,50,50,0.6)':'rgba(255,255,255,0.18)'};border-radius:10px;padding:12px 14px;color:${state.phoneError?'#ff6b6b':'#fff'};outline:none;font-size:15px;" value="${(state.form.phone||'').slice(3)||''}">
+          <input id="reg-phone-num" type="tel" inputmode="numeric" placeholder="0000000" maxlength="7" style="background:${state.phoneError?'rgba(220,50,50,0.08)':'rgba(255,255,255,0.08)'};border:0.5px solid ${state.phoneError?'rgba(220,50,50,0.6)':'rgba(255,255,255,0.18)'};border-radius:10px;padding:12px 14px;color:${state.phoneError?'#ff6b6b':'#fff'};font-size:15px;outline:none;width:100%;" value="${(state.form.phone||'').slice(3)||''}">
         </div></div>
         <div style="margin-bottom:14px;"><label style="color:rgba(255,255,255,0.55);font-size:13.2px;display:block;margin-bottom:5px;">שם משתמש</label>
         <input id="reg-user" type="text" placeholder="username" autocomplete="username" style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 14px;color:#fff;outline:none;" value="${state.form.username||''}"></div>
