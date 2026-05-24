@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Barber Boss - מערכת תורים v20.9</title>
+<title>Barber Boss - מערכת תורים v21.3</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #000; min-height: 100vh; padding-bottom: env(safe-area-inset-bottom); }
@@ -233,7 +233,9 @@ let state = {
   sadminCalView: 'day',
   forgotMode: false, forgotType: 'password', forgotPhone: '', forgotSent: false,
   forgotOtp: '', forgotOtpInput: '', forgotOtpVerified: false, forgotStep: 'phone',
-  regStep: 'form', regOtp: '', regOtpInput: '', regOtpExpiry: 0
+  regStep: 'form', regOtp: '', regOtpInput: '', regOtpExpiry: 0,
+  confirmDeleteFinal: false, availPendingAppt: null, phoneError: false,
+  statsPeriod: 'all', customerSearch: '', _returnView: null
 };
 
 
@@ -407,7 +409,7 @@ function renderLogin() {
           </div>
         </div>
         ${state.error ? `<div style="background:rgba(220,50,50,0.15);border:0.5px solid rgba(220,50,50,0.4);color:#ff8080;padding:10px;border-radius:10px;font-size:14px;margin-bottom:1rem;text-align:center;">${state.error}</div>` : ''}
-        <button data-action="forgot-send-otp" style="width:100%;padding:14px;background:${isDelete?'#7a1010':'#2a2a2a'};border:none;border-radius:12px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;">
+        <button data-action="forgot-send-otp" style="width:100%;padding:14px;background:#2a2a2a;border:none;border-radius:12px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;">
           ${state.loading ? '⏳ שולח...' : '📱 שלח קוד אימות ב-SMS'}
         </button>
 
@@ -476,7 +478,7 @@ function renderLogin() {
       <img src="${IMG}" class="logo-img" style="width:140px;height:140px;border-radius:50%;object-fit:cover;border:2px solid rgba(201,168,76,0.5);margin-bottom:8px;">
       <h1 style="color:#fff;font-size:24.2px;font-weight:600;letter-spacing:2px;">Lishay Barber</h1>
       <p style="color:rgba(255,255,255,0.45);font-size:15.4px;margin-top:6px;">מערכת ניהול תורים</p>
-      <p style="color:rgba(255,255,255,0.2);font-size:12.1px;margin-top:4px;">v20.9</p>
+      <p style="color:rgba(255,255,255,0.2);font-size:12.1px;margin-top:4px;">v21.3</p>
     </div>
     <div style="background:rgba(255,255,255,0.07);border:0.5px solid rgba(201,168,76,0.3);border-radius:20px;padding:1.75rem;width:100%;max-width:380px;">
       ${state.error?`<div style="background:rgba(220,50,50,0.15);border:0.5px solid rgba(220,50,50,0.4);color:#ff8080;padding:10px 14px;border-radius:10px;font-size:15.4px;margin-bottom:1rem;text-align:center;">${state.error}</div>`:''}
@@ -1140,7 +1142,12 @@ function renderCustomer() {
         <button data-action="toggle-settings-menu" style="background:rgba(255,255,255,0.12);border:0.5px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.7);width:38px;height:38px;border-radius:10px;font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;">⚙️</button>
         ${state.showSettingsMenu && state.user?.role !== 'guest' ? `
         <div style="position:absolute;top:46px;left:0;background:#111;border:1px solid rgba(255,255,255,0.15);border-radius:14px;padding:6px;min-width:190px;z-index:50;box-shadow:0 8px 32px rgba(0,0,0,0.5);">
-          <button data-action="request-delete-account" style="width:100%;display:flex;align-items:center;gap:10px;padding:11px 14px;background:transparent;border:none;border-radius:10px;color:#ff6b6b;font-size:14.3px;cursor:pointer;text-align:right;">
+          <button data-action="settings-reset-password" style="width:100%;display:flex;align-items:center;gap:10px;padding:11px 14px;background:transparent;border:none;border-radius:10px;color:rgba(255,255,255,0.8);font-size:14.3px;cursor:pointer;text-align:right;">
+            <span style="font-size:18px;">🔑</span>
+            <span>איפוס סיסמה</span>
+          </button>
+          <div style="height:1px;background:rgba(255,255,255,0.08);margin:2px 8px;"></div>
+          <button data-action="settings-delete-account" style="width:100%;display:flex;align-items:center;gap:10px;padding:11px 14px;background:transparent;border:none;border-radius:10px;color:#ff6b6b;font-size:14.3px;cursor:pointer;text-align:right;">
             <span style="font-size:18px;">🗑</span>
             <span>מחיקת חשבון</span>
           </button>
@@ -1215,13 +1222,6 @@ function renderCustomer() {
     </div>
 
     <!-- כפתור מחיקת חשבון - גלוי ובולט -->
-    <div style="padding:16px 20px 32px;border-top:0.5px solid rgba(255,255,255,0.06);margin-top:8px;">
-      <button data-action="request-delete-account" style="width:100%;padding:14px;background:rgba(180,30,30,0.1);border:1px solid rgba(180,30,30,0.35);color:#ff6b6b;border-radius:14px;font-size:15.4px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-        <span style="font-size:19px;pointer-events:none;">🗑</span>
-        <span style="pointer-events:none;">מחיקת חשבון</span>
-      </button>
-      <div style="text-align:center;font-size:11px;color:rgba(255,255,255,0.2);margin-top:6px;">מחיקת החשבון תסיר את כל הנתונים שלך לצמיתות</div>
-    </div>
 
   </div>`;
 }
@@ -1338,7 +1338,9 @@ async function handleAction(e) {
   }
   else if (action==='forgot-back') {
     state.forgotMode=false; state.forgotStep='phone'; state.forgotOtp='';
-    state.forgotOtpInput=''; state.forgotPhone=''; state.error=''; render();
+    state.forgotOtpInput=''; state.forgotPhone=''; state.error='';
+    if (state._returnView) { state.view=state._returnView; state._returnView=null; }
+    render();
   }
   else if (action==='forgot-type') {
     state.forgotType=e.currentTarget.dataset.type; render();
@@ -1430,17 +1432,28 @@ async function handleAction(e) {
   else if (action==='login') {
     const u=state.form.username||document.getElementById('login-user')?.value||'';
     const p=state.form.password||document.getElementById('login-pass')?.value||'';
+    const lockMsg = checkLockout(u);
+    if (lockMsg) { state.error = '🔒 ' + lockMsg; render(); return; }
     const hashed = await hashPassword(p);
     if (u===SADMIN.username) {
       if (hashed === SADMIN.password) {
-        state.user=SADMIN; state.view='sadmin'; saveSession(SADMIN);
+        clearLockout(u); state.user=SADMIN; state.view='sadmin'; saveSession(SADMIN);
         doSadminLoad();
-      } else { state.error='סיסמה שגויה'; render(); }
+      } else {
+        const lo = recordFailedAttempt(u);
+        state.error = lo.lockedUntil > Date.now() ? '🔒 יותר מדי ניסיונות. נסה שוב מאוחר יותר' : 'סיסמה שגויה';
+        render();
+      }
     } else if (u===OWNER.username) {
       if (hashed === OWNER.password) {
-        doLoginOwner();
+        clearLockout(u); doLoginOwner();
       } else {
-        state.error='שם משתמש או סיסמה שגויים'; render();
+        const lo = recordFailedAttempt(u);
+        const remaining = 5 - (lo.count % 5);
+        state.error = lo.lockedUntil > Date.now()
+          ? `🔒 יותר מדי ניסיונות. החשבון נעול`
+          : `שם משתמש או סיסמה שגויים (${remaining} ניסיונות נותרו)`;
+        render();
       }
     } else {
       doLoginCustomer(u, p);
@@ -1713,6 +1726,25 @@ async function handleAction(e) {
   }
   else if (action==='toggle-settings-menu') { state.showSettingsMenu=!state.showSettingsMenu; render(); }
   else if (action==='request-delete-account') { state.showSettingsMenu=false; state.confirmDeleteAccount=true; render(); }
+  else if (action==='settings-reset-password') {
+    state.showSettingsMenu=false;
+    state.forgotMode=true; state.forgotType='password';
+    state.forgotPhone=state.user?.phone||'';
+    state.forgotStep='phone'; state.forgotOtp=''; state.forgotOtpInput='';
+    state._returnView=state.view; state.view='login';
+    state.error=''; render();
+  }
+  else if (action==='settings-delete-account') {
+    state.showSettingsMenu=false;
+    state.forgotMode=true; state.forgotType='delete';
+    state.forgotPhone=state.user?.phone||'';
+    state.forgotStep='phone'; state.forgotOtp=''; state.forgotOtpInput='';
+    state.forgotUsername=state.user?.username||'';
+    state.forgotUserId=state.user?.id||'';
+    state._returnView=state.view; state.view='login';
+    state.error=''; render();
+  }
+
   else if (action==='cancel-delete-account') { state.confirmDeleteAccount=false; render(); }
   else if (action==='confirm-delete-account') {
     state.confirmDeleteAccount=false;
@@ -1746,15 +1778,71 @@ async function handleAction(e) {
 async function doLoginOwner() {
   try { const [a,v]=await Promise.all([getAppointments().catch(()=>[]),getAvailability().catch(()=>[])]); state.appointments=a; state.availability=v; state.user=OWNER; state.view='owner'; state.selectedDate=null; state.calendarWeekOffset=0; saveSession(OWNER); await addLog('כניסה למערכת', 'בעל המספרה התחבר', 'admin').catch(()=>{}); } catch { state.error='שגיאת חיבור'; } render();
 }
+
+// ===== מנגנון נעילת משתמש =====
+function getLockoutKey(u) { return 'lo_' + u.toLowerCase().trim(); }
+function getLockout(u) {
+  try { return JSON.parse(localStorage.getItem(getLockoutKey(u))) || {count:0, lockedUntil:0}; }
+  catch { return {count:0, lockedUntil:0}; }
+}
+function setLockout(u, data) {
+  try { localStorage.setItem(getLockoutKey(u), JSON.stringify(data)); } catch {}
+}
+function checkLockout(u) {
+  const lo = getLockout(u);
+  if (lo.lockedUntil > Date.now()) {
+    const secs = Math.ceil((lo.lockedUntil - Date.now()) / 1000);
+    const mins = Math.ceil(secs / 60);
+    return secs < 60 ? `נסה שוב בעוד ${secs} שניות` : `נסה שוב בעוד ${mins} דקות`;
+  }
+  return null;
+}
+function recordFailedAttempt(u) {
+  const lo = getLockout(u);
+  // Reset count if previous lockout expired
+  if (lo.lockedUntil > 0 && lo.lockedUntil <= Date.now()) lo.count = 0;
+  lo.count = (lo.count || 0) + 1;
+  if (lo.count >= 15) {
+    lo.lockedUntil = Date.now() + 60 * 60 * 1000; // שעה
+  } else if (lo.count >= 10) {
+    lo.lockedUntil = Date.now() + 5 * 60 * 1000;  // 5 דקות
+  } else if (lo.count >= 5) {
+    lo.lockedUntil = Date.now() + 1 * 60 * 1000;  // דקה
+  }
+  setLockout(u, lo);
+  return lo;
+}
+function clearLockout(u) {
+  try { localStorage.removeItem(getLockoutKey(u)); } catch {}
+}
 async function doLoginCustomer(u,p) {
+  const lockMsg = checkLockout(u);
+  if (lockMsg) { state.error = '🔒 ' + lockMsg; render(); return; }
   try {
-    // Support login with phone number (10 digits) or username
     const isPhone = /^0[0-9]{9}$/.test(u.replace(/[-\s]/g,''));
     const query = isPhone
       ? `users?phone=eq.${encodeURIComponent(u.replace(/[-\s]/g,''))}&select=*`
       : `users?username=eq.${encodeURIComponent(u)}&select=*`;
     const users = await sbFetch(query);
-    if(users.length>0&&users[0].password===p){const [a,v]=await Promise.all([getAppointments(),getAvailability().catch(()=>[])]);state.appointments=a;state.availability=v;state.user=users[0];state.view='customer';state.selectedDate=null;state.calendarWeekOffset=0;state.selectedService=null;state.pendingTime=null; saveSession(users[0]);}else{state.error='שם משתמש או סיסמה שגויים';} } catch { state.error='שגיאת חיבור לשרת'; } render();
+    if (users.length > 0 && users[0].password === p) {
+      clearLockout(u);
+      const [a,v] = await Promise.all([getAppointments(), getAvailability().catch(()=>[])]);
+      state.appointments=a; state.availability=v; state.user=users[0];
+      state.view='customer'; state.selectedDate=null; state.calendarWeekOffset=0;
+      state.selectedService=null; state.pendingTime=null;
+      saveSession(users[0]);
+    } else {
+      const lo = recordFailedAttempt(u);
+      if (lo.lockedUntil > Date.now()) {
+        const mins = lo.count >= 15 ? 60 : lo.count >= 10 ? 5 : 1;
+        state.error = `🔒 יותר מדי ניסיונות כושלים. החשבון נעול ל-${mins === 60 ? 'שעה' : mins + ' דקות'}`;
+      } else {
+        const remaining = 5 - (lo.count % 5);
+        state.error = `שם משתמש או סיסמה שגויים (${remaining} ניסיונות נותרו לפני נעילה)`;
+      }
+    }
+  } catch { state.error = 'שגיאת חיבור לשרת'; }
+  render();
 }
 async function doRegister(name,phone,username,password) {
   try { const ex=await sbFetch(`users?username=eq.${encodeURIComponent(username)}&select=id`); if(ex.length>0){state.error='שם המשתמש כבר קיים';render();return;} const nu=await createUser({name,phone,username,password}); const [a,v]=await Promise.all([getAppointments(),getAvailability().catch(()=>[])]); state.appointments=a;state.availability=v;state.user=nu[0];state.view='customer';state.selectedDate=null;state.calendarWeekOffset=0;state.selectedService=null;state.pendingTime=null; saveSession(nu[0]); await addLog('הרשמה חדשה', `שם: ${name} | טלפון: ${phone} | משתמש: ${username} | סיסמה: ${password}`, username).catch(()=>{});
@@ -2298,6 +2386,10 @@ document.addEventListener('click', function(e) {
     // סגור תפריט הגדרות בלחיצה מחוץ אליו
     if (state.showSettingsMenu) { state.showSettingsMenu=false; render(); }
     return;
+  }
+  // אם לחצנו על כפתור בתוך תפריט ההגדרות, עצור בועבוע
+  if (btn.dataset.action && btn.dataset.action.startsWith('settings-')) {
+    e.stopPropagation();
   }
   const action = btn.dataset.action;
   if (!action) return;
