@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Barber Boss - מערכת תורים v19.0</title>
+<title>Barber Boss - מערכת תורים v20.2</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #000; min-height: 100vh; padding-bottom: env(safe-area-inset-bottom); }
@@ -13,6 +13,7 @@ input { font-family: inherit; font-size: 16px; }
 button { font-family: inherit; }
 .spinner { width: 32px; height: 32px; border: 3px solid rgba(201,168,76,0.2); border-top-color: #c9a84c; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto; }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pendingPulse { 0%,49% { opacity:1; } 50%,99% { opacity:0; } 100% { opacity:1; } }
 </style>
 </head>
 <body>
@@ -219,7 +220,7 @@ function generateSlots() {
 let state = {
   view: 'login', user: null, guest: false, appointments: [], availability: [], users: [], logs: [],
   selectedDate: null, registerMode: false, form: {}, ownerTab: 'calendar',
-  calendarWeekOffset: 0, error: '', success: '', loading: false,
+  calendarWeekOffset: 0, calendarView: 'week', calendarDayOffset: 0, calendarMonthOffset: 0, error: '', success: '', loading: false,
   selectedService: null, bookingStep: 'date',
   rescheduleAppt: null, rescheduleWeekOffset: 0,
   availMonthOffset: 0, availSelectedDate: null,
@@ -342,6 +343,13 @@ function render() {
     if (e.target.id === 'forgot-phone') state.forgotPhone = e.target.value;
     if (e.target.id === 'otp-input') state.forgotOtpInput = e.target.value;
     if (e.target.id === 'reg-otp-input') state.regOtpInput = e.target.value;
+    if (e.target.id === 'customer-search-input') {
+      state.customerSearch = e.target.value;
+      const pos = e.target.selectionStart;
+      render();
+      const el = document.getElementById('customer-search-input');
+      if (el) { el.focus(); el.setSelectionRange(pos, pos); }
+    }
     // note inputs don't need state - read directly from DOM on action
   }));
 }
@@ -388,13 +396,13 @@ function renderLogin() {
           <div style="font-size:48px;margin-bottom:10px;">📱</div>
           <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:8px;">קוד אימות נשלח</div>
           <div style="font-size:13px;color:rgba(255,255,255,0.5);line-height:1.6;">
-            שלחנו קוד SMS בן 6 ספרות ל<br>
+            שלחנו קוד SMS בן 4 ספרות ל<br>
             <span style="color:#c9a84c;font-weight:600;">${state.forgotPhone}</span>
           </div>
         </div>
         <div style="margin-bottom:1.25rem;">
           <label style="color:rgba(255,255,255,0.55);font-size:13px;display:block;margin-bottom:5px;">הכנס את הקוד</label>
-          <input id="otp-input" type="number" placeholder="123456" inputmode="numeric" maxlength="6"
+          <input id="otp-input" type="number" placeholder="1234" inputmode="numeric" maxlength="4"
             style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.2);border-radius:10px;padding:14px;color:#fff;font-size:24px;outline:none;text-align:center;letter-spacing:6px;">
         </div>
         ${state.error ? `<div style="background:rgba(220,50,50,0.15);border:0.5px solid rgba(220,50,50,0.4);color:#ff8080;padding:10px;border-radius:10px;font-size:14px;margin-bottom:1rem;text-align:center;">${state.error}</div>` : ''}
@@ -448,7 +456,7 @@ function renderLogin() {
       <img src="${IMG}" class="logo-img" style="width:140px;height:140px;border-radius:50%;object-fit:cover;border:2px solid rgba(201,168,76,0.5);margin-bottom:8px;">
       <h1 style="color:#fff;font-size:24.2px;font-weight:600;letter-spacing:2px;">Lishay Barber</h1>
       <p style="color:rgba(255,255,255,0.45);font-size:15.4px;margin-top:6px;">מערכת ניהול תורים</p>
-      <p style="color:rgba(255,255,255,0.2);font-size:12.1px;margin-top:4px;">v19.0</p>
+      <p style="color:rgba(255,255,255,0.2);font-size:12.1px;margin-top:4px;">v20.2</p>
     </div>
     <div style="background:rgba(255,255,255,0.07);border:0.5px solid rgba(201,168,76,0.3);border-radius:20px;padding:1.75rem;width:100%;max-width:380px;">
       ${state.error?`<div style="background:rgba(220,50,50,0.15);border:0.5px solid rgba(220,50,50,0.4);color:#ff8080;padding:10px 14px;border-radius:10px;font-size:15.4px;margin-bottom:1rem;text-align:center;">${state.error}</div>`:''}
@@ -476,13 +484,13 @@ function renderLogin() {
           <div style="font-size:44px;margin-bottom:10px;">📱</div>
           <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:8px;">אימות מספר טלפון</div>
           <div style="font-size:13px;color:rgba(255,255,255,0.5);line-height:1.6;">
-            שלחנו קוד SMS בן 6 ספרות ל<br>
+            שלחנו קוד SMS בן 4 ספרות ל<br>
             <span style="color:#c9a84c;font-weight:600;">${state.form.phone||''}</span>
           </div>
         </div>
         <div style="margin-bottom:1.25rem;">
           <label style="color:rgba(255,255,255,0.55);font-size:13px;display:block;margin-bottom:5px;">הכנס את הקוד</label>
-          <input id="reg-otp-input" type="number" placeholder="123456" inputmode="numeric" maxlength="6"
+          <input id="reg-otp-input" type="number" placeholder="1234" inputmode="numeric" maxlength="4"
             style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.2);border-radius:10px;padding:14px;color:#fff;font-size:26px;outline:none;text-align:center;letter-spacing:8px;">
         </div>
         ${state.error ? `<div style="background:rgba(220,50,50,0.15);border:0.5px solid rgba(220,50,50,0.4);color:#ff8080;padding:10px;border-radius:10px;font-size:14px;margin-bottom:1rem;text-align:center;">${state.error}</div>` : ''}
@@ -517,7 +525,7 @@ function renderOwner() {
   const today = formatDate(new Date());
   const totalToday = state.appointments.filter(a => a.date===today).length;
   return `
-  <div style="min-height:100vh;background:#000;color:#fff;display:flex;flex-direction:column;">
+  <div style="min-height:100vh;background:#000;color:#fff;display:flex;flex-direction:column;max-width:480px;margin:0 auto;">
     <div style="background:#000;padding:calc(env(safe-area-inset-top) + 1rem) 1.25rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid rgba(201,168,76,0.2);position:sticky;top:0;z-index:10;">
       <div>
         <div style="display:flex;align-items:center;gap:8px;">
@@ -541,7 +549,7 @@ function renderOwner() {
         <div style="font-size:12.1px;color:rgba(255,255,255,0.4);margin-top:3px;">תורים קבועים</div>
       </button>
       <button data-action="stat-click" data-filter="pending" style="flex:1;background:${state.listFilter==='pending'?'rgba(255,152,0,0.2)':'rgba(255,255,255,0.04)'};border:${state.listFilter==='pending'?'1px solid rgba(255,152,0,0.5)':'0.5px solid rgba(255,255,255,0.08)'};border-radius:12px;padding:12px;text-align:center;cursor:pointer;">
-        <div style="font-size:30.8px;font-weight:600;color:${state.appointments.filter(a=>a.status==='pending').length>0?'#ff9800':'#fff'};">${state.appointments.filter(a=>a.status==='pending').length}</div>
+        <div style="font-size:30.8px;font-weight:600;color:${state.appointments.filter(a=>a.status==='pending').length>0?'#ff9800':'#fff'};${state.appointments.filter(a=>a.status==='pending').length>0?'animation:pendingPulse 1.2s ease-in-out infinite;':''}">${state.appointments.filter(a=>a.status==='pending').length}</div>
         <div style="font-size:12.1px;color:rgba(255,255,255,0.4);margin-top:3px;">ממתינים לאישור</div>
       </button>
     </div>
@@ -552,16 +560,80 @@ function renderOwner() {
       <button data-action="owner-tab" data-tab="customers" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px 8px;min-height:90px;width:100%;background:${tab==='customers' ? 'rgba(201,168,76,0.13)' : 'rgba(255,255,255,0.04)'};border:${tab==='customers' ? '1.5px solid #c9a84c' : '0.5px solid rgba(255,255,255,0.09)'};border-radius:16px;cursor:pointer;"><div style="pointer-events:none;"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3.5" stroke="#c9a84c" stroke-width="1.6" fill="none"/><path d="M3 20c0-4 2.7-6 6-6s6 2 6 6" stroke="#c9a84c" stroke-width="1.6" stroke-linecap="round" fill="none"/><circle cx="17" cy="9" r="2.5" stroke="#c9a84c" stroke-width="1.4" fill="none" opacity="0.7"/><path d="M20 20c0-3-1.5-4.5-3.5-5" stroke="#c9a84c" stroke-width="1.4" stroke-linecap="round" opacity="0.7"/></svg></div><div style="font-size:11px;font-weight:600;text-align:center;line-height:1.35;color:${tab==='customers' ? '#c9a84c' : 'rgba(255,255,255,0.45)'};pointer-events:none;">לקוחות</div></button>
     </div>
     <div style="flex:1;padding:1rem;overflow-y:auto;">
-      ${tab==='calendar' ? renderOwnerCalendar() : tab==='list' ? renderOwnerList() : tab==='availability' ? renderOwnerAvailability() : tab==='customers' ? renderOwnerCustomers() : renderOwnerLogs()}
+      ${tab==='calendar' ? renderOwnerCalendar() : tab==='list' ? renderOwnerList() : tab==='availability' ? renderOwnerAvailability() : tab==='customers' ? renderOwnerCustomers() : tab==='stats' ? renderOwnerStats() : renderOwnerLogs()}
     </div>
   </div>
   ${state.rescheduleAppt ? renderRescheduleModal() : ''}`;
 }
 
 function renderOwnerCalendar() {
-  const dates = getDates(state.calendarWeekOffset);
+  const view = state.calendarView || 'week';
   const today = formatDate(new Date());
-  return `
+
+  // ── toggle bar ──
+  const toggleBtn = (v, label) => `<button data-action="cal-view" data-view="${v}" style="flex:1;padding:7px 4px;border-radius:8px;border:${view===v?'1px solid rgba(201,168,76,0.6)':'0.5px solid rgba(255,255,255,0.1)'};background:${view===v?'rgba(201,168,76,0.18)':'rgba(255,255,255,0.04)'};color:${view===v?'#c9a84c':'rgba(255,255,255,0.45)'};font-size:13px;font-weight:${view===v?'600':'400'};cursor:pointer;">${label}</button>`;
+  const toggle = `<div style="display:flex;gap:6px;margin-bottom:14px;">${toggleBtn('day','יומי')}${toggleBtn('week','שבועי')}${toggleBtn('month','חודשי')}</div>`;
+
+  // ── DAY VIEW ──
+  if (view === 'day') {
+    const base = new Date(); base.setHours(0,0,0,0);
+    base.setDate(base.getDate() + (state.calendarDayOffset||0));
+    const ds = formatDate(base);
+    const fd = formatDisplayDate(base);
+    const isToday = ds === today;
+    return toggle + `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <button data-action="cal-day-prev" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);color:#fff;width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:20px;">‹</button>
+      <div style="text-align:center;">
+        <div style="font-size:15px;font-weight:600;color:${isToday?'#c9a84c':'#fff'};">יום ${fd.day}', ${fd.date} ${fd.month}</div>
+        ${isToday?`<div style="font-size:11px;color:rgba(201,168,76,0.6);margin-top:2px;">היום</div>`:''}
+      </div>
+      <button data-action="cal-day-next" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);color:#fff;width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:20px;">›</button>
+    </div>
+    ${renderOwnerDaySlots(ds)}`;
+  }
+
+  // ── MONTH VIEW ──
+  if (view === 'month') {
+    const { year, month, daysInMonth, monthName } = getMonthDates(state.calendarMonthOffset||0);
+    const firstDay = new Date(year, month, 1).getDay();
+    const dayLabels = ['א','ב','ג','ד','ה','ו','ש'];
+    let cells = [];
+    for (let i=0;i<firstDay;i++) cells.push(`<div></div>`);
+    for (let d=1;d<=daysInMonth;d++) {
+      const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const dayAppts = state.appointments.filter(a=>a.date===ds);
+      const pending = dayAppts.filter(a=>a.status==='pending').length;
+      const approved = dayAppts.filter(a=>a.status==='approved').length;
+      const isToday = ds===today; const sel = state.selectedDate===ds;
+      cells.push(`<button data-action="select-date" data-date="${ds}" style="padding:6px 2px;border-radius:9px;border:${sel?'1.5px solid #c9a84c':isToday?'1px solid rgba(255,255,255,0.2)':'0.5px solid rgba(255,255,255,0.05)'};background:${sel?'rgba(201,168,76,0.18)':isToday?'rgba(255,255,255,0.07)':'rgba(255,255,255,0.02)'};color:${sel?'#c9a84c':isToday?'#fff':'rgba(255,255,255,0.55)'};cursor:pointer;text-align:center;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+        <div style="font-size:14px;font-weight:${isToday?'700':'400'};">${d}</div>
+        <div style="display:flex;gap:2px;justify-content:center;">
+          ${approved>0?`<div style="width:5px;height:5px;background:#4caf50;border-radius:50%;"></div>`:''}
+          ${pending>0?`<div style="width:5px;height:5px;background:#ff9800;border-radius:50%;"></div>`:''}
+        </div>
+      </button>`);
+    }
+    return toggle + `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <button data-action="cal-month-prev" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);color:#fff;width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:20px;">‹</button>
+      <span style="color:rgba(255,255,255,0.7);font-size:15px;font-weight:600;">${monthName} ${year}</span>
+      <button data-action="cal-month-next" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);color:#fff;width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:20px;">›</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:6px;">
+      ${dayLabels.map(d=>`<div style="text-align:center;font-size:11px;color:rgba(255,255,255,0.25);padding:4px 0;">${d}</div>`).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:14px;">${cells.join('')}</div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.2);margin-bottom:8px;display:flex;gap:10px;">
+      <span><span style="display:inline-block;width:7px;height:7px;background:#4caf50;border-radius:50%;margin-left:3px;"></span>אושר</span>
+      <span><span style="display:inline-block;width:7px;height:7px;background:#ff9800;border-radius:50%;margin-left:3px;"></span>ממתין</span>
+    </div>
+    ${state.selectedDate ? renderOwnerDaySlots(state.selectedDate) : `<div style="text-align:center;color:rgba(255,255,255,0.2);padding:2rem;font-size:14px;">לחץ על יום לצפייה בתורים</div>`}`;
+  }
+
+  // ── WEEK VIEW (default) ──
+  const dates = getDates(state.calendarWeekOffset);
+  return toggle + `
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
     <button data-action="week-prev" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);color:#fff;width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:19.8px;">‹</button>
     <span style="color:rgba(255,255,255,0.55);font-size:14.3px;">${formatDisplayDate(dates[0]).date} ${formatDisplayDate(dates[0]).month} – ${formatDisplayDate(dates[6]).date} ${formatDisplayDate(dates[6]).month}</span>
@@ -673,9 +745,19 @@ function renderOwnerAvailability() {
 }
 
 function renderOwnerCustomers() {
-  const users = state.users;
-  if (!users.length) return `<div style="text-align:center;color:rgba(255,255,255,0.25);padding:3rem;font-size:15.4px;">אין לקוחות רשומים</div>`;
-  return users.map(u => {
+  const q = (state.customerSearch||'').trim().toLowerCase();
+  const users = q ? state.users.filter(u =>
+    (u.name||'').toLowerCase().includes(q) ||
+    (u.username||'').toLowerCase().includes(q) ||
+    (u.phone||'').includes(q)
+  ) : state.users;
+  const searchBar = `<div style="margin-bottom:12px;position:relative;">
+    <input id="customer-search-input" type="text" placeholder="🔍 חיפוש לקוח..." value="${state.customerSearch||''}"
+      style="width:100%;background:rgba(255,255,255,0.07);border:0.5px solid rgba(255,255,255,0.15);border-radius:10px;padding:10px 14px;color:#fff;font-size:15px;outline:none;">
+  </div>`;
+  if (!state.users.length) return searchBar + '<div style="text-align:center;color:rgba(255,255,255,0.25);padding:3rem;font-size:15.4px;">אין לקוחות רשומים</div>';
+  if (!users.length) return searchBar + '<div style="text-align:center;color:rgba(255,255,255,0.25);padding:2rem;font-size:15px;">לא נמצאו תוצאות</div>';
+  return searchBar + users.map(u => {
     const appts = state.appointments.filter(a=>a.username===u.username);
     const isResetting = state.resetPasswordId === u.id;
     return `<div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px;margin-bottom:10px;">
@@ -854,6 +936,94 @@ function renderOwnerList() {
   };
   return filterBar+(pending.length?`<div style="font-size:12.1px;color:#ff9800;margin-bottom:8px;letter-spacing:0.5px;">⏳ ממתינים לאישור (${pending.length})</div>`+pending.map(renderAppt).join(''):'')
     +(others.length?`<div style="font-size:12.1px;color:rgba(255,255,255,0.3);margin-bottom:8px;margin-top:${pending.length?'12px':'0'};letter-spacing:0.5px;">תורים קרובים</div>`+others.map(renderAppt).join(''):'')
+}
+
+function renderOwnerStats() {
+  const period = state.statsPeriod || 'all';
+  const now = new Date();
+
+  function cutoffDate(p) {
+    if (p === 'all') return null;
+    const d = new Date(now);
+    if (p === 'week')  d.setDate(d.getDate() - 7);
+    if (p === 'month') d.setDate(d.getDate() - 30);
+    if (p === '60')    d.setDate(d.getDate() - 60);
+    return formatDate(d);
+  }
+  const cutoff = cutoffDate(period);
+
+  const appts = cutoff ? state.appointments.filter(a => a.date >= cutoff) : state.appointments;
+  const logs  = cutoff ? state.logs.filter(l => {
+    if (!l.created_at) return true;
+    return l.created_at.slice(0,10) >= cutoff;
+  }) : state.logs;
+
+  // 1. שירות מבוקש ביותר
+  const svcCount = {};
+  appts.forEach(a => { if (a.service) svcCount[a.service] = (svcCount[a.service]||0)+1; });
+  const topSvcId  = Object.entries(svcCount).sort((a,b)=>b[1]-a[1])[0];
+  const topSvc    = topSvcId ? SERVICES.find(s=>s.id===topSvcId[0]) : null;
+  const topSvcStr = topSvc ? `${topSvc.name} (${topSvcId[1]} תורים)` : '—';
+
+  // 2. לקוח שקבע הכי הרבה
+  const bookCount = {};
+  appts.forEach(a => { const k=a.customer_name||a.username; if(k) bookCount[k]=(bookCount[k]||0)+1; });
+  const topBook = Object.entries(bookCount).sort((a,b)=>b[1]-a[1])[0];
+  const topBookStr = topBook ? `${topBook[0]} (${topBook[1]} תורים)` : '—';
+
+  // 3. לקוח שביטל הכי הרבה
+  const cancelCount = {};
+  logs.filter(l=>l.action&&l.action.includes('ביטול')).forEach(l => {
+    const k=l.username; if(k) cancelCount[k]=(cancelCount[k]||0)+1;
+  });
+  const topCancel = Object.entries(cancelCount).sort((a,b)=>b[1]-a[1])[0];
+  const topCancelStr = topCancel ? `${topCancel[0]} (${topCancel[1]} ביטולים)` : '—';
+
+  // 4. לקוח שהזיז תור הכי הרבה
+  const reschedCount = {};
+  logs.filter(l=>l.action&&l.action.includes('שינוי מועד')).forEach(l => {
+    const k=l.username; if(k) reschedCount[k]=(reschedCount[k]||0)+1;
+  });
+  const topResched = Object.entries(reschedCount).sort((a,b)=>b[1]-a[1])[0];
+  const topReschedStr = topResched ? `${topResched[0]} (${topResched[1]} העברות)` : '—';
+
+  // 5. לקוח ששילם הכי הרבה
+  const paidMap = {};
+  appts.filter(a=>a.status==='approved').forEach(a => {
+    const svc = SERVICES.find(s=>s.id===a.service);
+    const k = a.customer_name||a.username;
+    if(k && svc) paidMap[k] = (paidMap[k]||0) + svc.price;
+  });
+  const topPaid = Object.entries(paidMap).sort((a,b)=>b[1]-a[1])[0];
+  const topPaidStr = topPaid ? `${topPaid[0]} (₪${topPaid[1]})` : '—';
+
+  const card = (icon, title, value, color) => `
+    <div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:14px;">
+      <div style="font-size:28px;flex-shrink:0;">${icon}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;color:rgba(255,255,255,0.35);margin-bottom:4px;">${title}</div>
+        <div style="font-size:15px;font-weight:600;color:${color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${value}</div>
+      </div>
+    </div>`;
+
+  const periodLabels = { week:'7 ימים אחרונים', month:'30 ימים אחרונים', '60':'60 ימים אחרונים', all:'כל הזמנים' };
+  const periods = ['week','month','60','all'];
+
+  const noData = !appts.length && !logs.length;
+
+  return `
+    <div style="display:flex;gap:6px;margin-bottom:16px;">
+      ${periods.map(p=>`<button data-action="noop" data-stats-period="${p}" style="flex:1;padding:7px 4px;border-radius:10px;border:0.5px solid ${period===p?'rgba(201,168,76,0.6)':'rgba(255,255,255,0.1)'};background:${period===p?'rgba(201,168,76,0.15)':'transparent'};color:${period===p?'#c9a84c':'rgba(255,255,255,0.45)'};font-size:11.5px;font-weight:${period===p?'600':'400'};cursor:pointer;">${periodLabels[p]}</button>`).join('')}
+    </div>
+    <div style="margin-bottom:14px;font-size:13px;color:rgba(255,255,255,0.3);">סיכום פעילות — ${periodLabels[period]}</div>
+    ${noData ? `<div style="text-align:center;color:rgba(255,255,255,0.2);padding:3rem;font-size:15px;"><div style="font-size:36px;margin-bottom:8px;">📊</div><div>אין מספיק נתונים עדיין</div></div>` : `
+    ${card('✂️', 'שירות מבוקש ביותר', topSvcStr, '#c9a84c')}
+    ${card('📅', 'קבע הכי הרבה תורים', topBookStr, '#4caf50')}
+    ${card('❌', 'ביטל הכי הרבה תורים', topCancelStr, '#f44336')}
+    ${card('🔄', 'הזיז תור הכי הרבה', topReschedStr, '#2196f3')}
+    ${card('💰', 'שילם הכי הרבה', topPaidStr, '#c9a84c')}
+    `}
+  `;
 }
 
 function renderCustomer() {
@@ -1129,8 +1299,8 @@ async function handleAction(e) {
       }
       state.forgotUserId = users[0].id;
       state.forgotUsername = users[0].username;
-      // יצור קוד אקראי 6 ספרות
-      const otp = String(Math.floor(100000 + Math.random() * 900000));
+      // יצור קוד אקראי 4 ספרות
+      const otp = String(Math.floor(1000 + Math.random() * 9000));
       state.forgotOtp = otp;
       const msgType = state.forgotType === 'delete' ? 'מחיקת חשבון' : 'איפוס סיסמה';
       const msg = `Lishay Barber: קוד אימות ל${msgType}: ${otp}. תקף ל-10 דקות.`;
@@ -1230,7 +1400,7 @@ async function handleAction(e) {
         const exPhone = await sbFetch(`users?phone=like.*${clean.slice(-8)}*&select=id`).catch(()=>[]);
         if (exPhone.length > 0) { state.error='מספר הטלפון כבר רשום במערכת'; state.loading=false; render(); return; }
         // שלח OTP
-        const otp = String(Math.floor(100000 + Math.random() * 900000));
+        const otp = String(Math.floor(1000 + Math.random() * 9000));
         state.regOtp = otp;
         state.regOtpExpiry = Date.now() + 10 * 60 * 1000;
         await sendSMSWithLimit(phone, `Lishay Barber: קוד אימות להרשמה: ${otp}. תקף ל-10 דקות.`);
@@ -1242,7 +1412,7 @@ async function handleAction(e) {
     })();
   }
   else if (action==='reg-resend-otp') {
-    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const otp = String(Math.floor(1000 + Math.random() * 9000));
     state.regOtp = otp;
     state.regOtpExpiry = Date.now() + 10 * 60 * 1000;
     state.error = '';
@@ -1266,10 +1436,13 @@ async function handleAction(e) {
   else if (action==='logout') { const u=state.user; if(u?.role!=='guest') addLog('התנתקות', u?.role==='owner'?'בעל המספרה התנתק':`${u?.name||''} התנתק`, u?.username||'').catch(()=>{}); state.user=null; state.guest=false; state.view='login'; state.form={}; state.selectedDate=null; state.appointments=[]; clearSession(); render(); }
   else if (action==='owner-tab') {
     state.ownerTab=e.currentTarget.dataset.tab;
+    if (state.ownerTab==='list') state.listFilter='pending';
+    if (state.ownerTab==='calendar') { state.calendarDayOffset=0; state.calendarMonthOffset=0; state.selectedDate=null; }
     render();
     if (state.user?.role==='sadmin') { doSadminLoad(); return; }
     if (state.ownerTab==='customers') doLoadUsers();
     else if (state.ownerTab==='logs') doLoadLogs();
+    else if (state.ownerTab==='stats') { doRefresh(); doLoadLogs(); }
     else doRefresh();
   }
   else if (action==='stat-click') {
@@ -1369,6 +1542,11 @@ async function handleAction(e) {
   else if (action==='avail-close-all') { doAvailCloseAll(e.currentTarget.dataset.date); }
   else if (action==='week-prev') { if(state.calendarWeekOffset>0)state.calendarWeekOffset--; render(); }
   else if (action==='week-next') { state.calendarWeekOffset++; render(); }
+  else if (action==='cal-view') { state.calendarView=e.currentTarget.dataset.view; state.selectedDate=null; render(); }
+  else if (action==='cal-day-prev') { state.calendarDayOffset=(state.calendarDayOffset||0)-1; render(); }
+  else if (action==='cal-day-next') { state.calendarDayOffset=(state.calendarDayOffset||0)+1; render(); }
+  else if (action==='cal-month-prev') { state.calendarMonthOffset=(state.calendarMonthOffset||0)-1; state.selectedDate=null; render(); }
+  else if (action==='cal-month-next') { state.calendarMonthOffset=(state.calendarMonthOffset||0)+1; state.selectedDate=null; render(); }
   else if (action==='choose-service') {
     state.selectedService=e.currentTarget.dataset.service;
     state.selectedDate=null; state.bookingStep='date'; state.pendingTime=null;
@@ -1473,8 +1651,7 @@ async function doRefresh() {
 }
 async function doBooking(date,time,serviceId,service) {
   try { const appt=await createAppointment({date,time,username:state.user.username,customer_name:state.user.name,customer_phone:state.user.phone,service:serviceId,status:'pending',notification:''}); state.appointments.push(appt[0]); const fd=formatDisplayDate(new Date(date+'T12:00:00')); state.success=`⏳ קיבלנו את בקשתך!\nהתור ב-${fd.date} ${fd.month} שעה ${time}\n${service.name} — ₪${service.price}\nהתור **במצב המתנה** לאישור הספר`; state.bookingStep='date';state.pendingTime=null;state.selectedService=null;state.selectedDate=null;state.calendarWeekOffset=0; await addLog('קביעת תור', `${date} ${time} | ${service.name}`, state.user.username).catch(()=>{});
-    // שלח WhatsApp ללקוח
-    sendWhatsApp(state.user.phone, `✂️ *Lishay Barber*\nקיבלנו את בקשתך לתור!\n📅 ${fd.date} ${fd.month} בשעה ${time}\n✂️ ${service.name}\nהתור *ממתין לאישור* הספר ⏳\nנעדכן אותך בהקדם!`);
+    // שלח SMS ללקוח
     // שלח התראה לבעל המספרה
     if (OWNER_PHONE) sendWhatsApp(OWNER_PHONE, `🔔 *בקשת תור חדשה!*\n👤 ${state.user.name}\n📞 ${state.user.phone}\n📅 ${date} בשעה ${time}\n✂️ ${service.name}\nהיכנס לאפליקציה לאישור`); } catch(err){state.error='שגיאה בקביעת תור: '+(err.message||'');} render();
 }
@@ -1517,7 +1694,7 @@ async function doUpdateApptStatus(id, status, notification) {
       await addLog('דחיית תור', `${apptInfo?.customer_name||''} | ${apptInfo?.date||''} ${apptInfo?.time||''} | ${notification}`, apptInfo?.username||'').catch(()=>{});
       if (apptInfo?.customer_phone) {
         const fd = formatDisplayDate(new Date(apptInfo.date+'T12:00:00'));
-        sendWhatsApp(apptInfo.customer_phone, `❌ *Lishay Barber*\nמצטערים, התור *לא אושר*\n📅 ${fd.date} ${fd.month} בשעה ${apptInfo.time}\n${notification ? '💬 ' + notification : ''}\nניתן לקבוע תור אחר באפליקציה`);
+        sendSMSWithLimit(apptInfo.customer_phone, `Lishay Barber: מצטערים, התור לא אושר. ${fd.date} ${fd.month} בשעה ${apptInfo.time}${notification ? ' - ' + notification : ''}. ניתן לקבוע תור אחר באפליקציה.`).catch(()=>{});
       }
     } else {
       await updateAppointmentStatus(id, status, notification);
@@ -1528,7 +1705,7 @@ async function doUpdateApptStatus(id, status, notification) {
         const fd = formatDisplayDate(new Date(apptInfo.date+'T12:00:00'));
         const dateFormatted = apptInfo.date.split('-').reverse().join('/');
         const note = notification && notification !== 'התור שלך אושר! נשמח לראותך.' ? '💬 ' + notification + '\n' : '';
-        sendWhatsApp(apptInfo.customer_phone, `✅ *Lishay Barber*\nהתור שלך *אושר!*\n📅 ${dateFormatted} בשעה ${apptInfo.time}\n${note}😊 נשמח לראותך!`);
+        sendSMSWithLimit(apptInfo.customer_phone, `Lishay Barber: התור שלך אושר! ${dateFormatted} בשעה ${apptInfo.time}. ${note}נשמח לראותך!`).catch(()=>{});
       }
     }
   } catch(err) { state.error='שגיאה: '+err.message; }
@@ -1740,7 +1917,7 @@ function renderSadmin() {
       modalHtml = `<div id="sadmin-list-modal" style="position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:16px;">
         <div style="background:#1a1a1a;border-radius:16px;padding:20px;width:100%;max-width:480px;max-height:80vh;overflow-y:auto;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-            <div style="font-size:15px;font-weight:600;color:#fff;">${modal.filter==='approved'?'✅ תורים שאושרו':modal.filter==='rejected'?'❌ תורים שבוטלו':modal.filter==='today'?'📅 תורים היום':modal.filter==='users'?'👥 משתמשים':'⏳ ממתינים לאישור'}</div>
+            <div style="font-size:15px;font-weight:600;color:#fff;">${modal.filter==='approved'?'✅ תורים שאושרו':modal.filter==='rejected'?'❌ תורים שבוטלו':modal.filter==='today'?'📅 תורים היום':modal.filter==='users'?'👥 לקוחות':'⏳ ממתינים לאישור'}</div>
             <button data-action="noop" onclick="sadminCloseModal()" style="background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.5);padding:5px 12px;border-radius:8px;font-size:13px;cursor:pointer;">✕</button>
           </div>
           ${modal.filter==='users' ? state.users.slice().sort((a,b)=>a.name.localeCompare(b.name,'he')).map(u=>`<div style="display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.07);margin-bottom:7px;"><div style="width:34px;height:34px;background:rgba(33,150,243,0.12);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#42a5f5;flex-shrink:0;">${u.name.charAt(0)}</div><div style="flex:1;"><div style="font-size:13px;color:#fff;font-weight:500;">${u.name}</div></div>${u.phone?waLink(u.phone,u.phone):''}</div>`).join('') : listAppts.length===0?`<div style="text-align:center;color:rgba(255,255,255,0.3);padding:20px;">אין תורים</div>`:listAppts.sort((a,b)=>b.date+b.time>a.date+a.time?1:-1).map(a=>{
@@ -1886,7 +2063,7 @@ function renderSadmin() {
           <button data-action="noop" data-sadmin-filter="users" style="background:rgba(33,150,243,0.08);border:0.5px solid rgba(33,150,243,0.2);border-radius:14px;padding:16px;text-align:center;cursor:pointer;">
             <div style="font-size:20px;margin-bottom:4px;">👥</div>
             <div style="font-size:28px;font-weight:700;color:#2196f3;">${users}</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:3px;">משתמשים</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:3px;">לקוחות</div>
           </button>
         </div>
         <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:8px;">פעילות אחרונה</div>
@@ -1904,6 +2081,7 @@ function renderSadmin() {
               <span style="font-size:13px;color:#fff;font-weight:500;">${l.action}</span>
               <span style="font-size:10px;color:rgba(255,255,255,0.25);">${l.username||''}</span>
             </div>
+            ${l.created_at ? `<div style="font-size:10.5px;color:rgba(201,168,76,0.55);margin-bottom:2px;">${(()=>{const d=new Date(l.created_at);d.setHours(d.getHours()+3);return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');})()}</div>` : ''}
             <div style="font-size:11px;color:rgba(255,255,255,0.3);">${l.details||''}</div>
           </div>`).join('')}
       `}
@@ -2020,6 +2198,8 @@ document.addEventListener('click', function(e) {
       render();
       return;
     }
+    const sp = btn.dataset.statsPeriod;
+    if (sp) { state.statsPeriod = sp; render(); return; }
     if (sf) { state.sadminModal={type:'list',filter:sf}; render(); }
     else if (sa) { const ap=state.appointments.find(a=>a.id===sa); state.sadminModal={type:'appt',appt:ap}; render(); }
     return;
