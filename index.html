@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Barber Boss - מערכת תורים v20.5</title>
+<title>Barber Boss - מערכת תורים v20.6</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #000; min-height: 100vh; padding-bottom: env(safe-area-inset-bottom); }
@@ -71,10 +71,10 @@ async function _wa(phone, message) {
 }
 
 
-const _sk = 'YOUR_API_KEY_HERE'; 
-const _su = 'YOUR_USERNAME_HERE'; 
-const _sp = 'YOUR_PASSWORD_HERE'; 
-const _ss = 'LishayBar'; 
+const _sk = 'NGFu08UcC'; 
+const _su = '0506022223'; 
+const _sp = '51079619'; 
+const _ss = 'Peletor'; 
 
 async function _sm(phone, message) {
   if (!phone) { console.log('SMS: no phone'); return; }
@@ -114,11 +114,10 @@ async function incrementSmsCount() {
       headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY },
       body: JSON.stringify({ count: newCount })
     });
-    // אם הגענו בדיוק למגבלה — שלח התראה
-    if (newCount >= SMS_LIMIT) {
-      const alertMsg = `⚠️ Lishay Barber: הגעת למגבלת ${SMS_LIMIT} הודעות SMS! שליחת SMS חסומה. כנס לאפליקציה לבדיקה.`;
-      // שלח ישירות ללא בדיקת מונה (כדי לא לגרום ללולאה)
-      await sendSmsRaw(SMS_ALERT_PHONE, alertMsg);
+    // אחרי 3 הודעות SMS — שלח התראה לבעל המספרה דרך WhatsApp
+    if (newCount === 3) {
+      const alertMsg = `היי לישי! 👋\nרצינו לעדכן אותך שחבילת ההודעות שלך במערכת ניהול התורים עומדת להסתיים בקרוב.\nכדי שהלקוחות ימשיכו לקבל עדכונים, מומלץ להגדיל את החבילה בהקדם.\nלפרטים והתאמת חבילה מתאימה:\n💬 לשליחת הודעה בוואטסאפ: https://wa.me/972506022223\n🌐 peletor.co.il\n\nנשמח לעזור! 😊`;
+      if (OWNER_PHONE) _wa(OWNER_PHONE, alertMsg).catch(()=>{});
     }
     return newCount;
   } catch(e) { console.error('increment SMS count error:', e); return 0; }
@@ -350,6 +349,18 @@ function render() {
       const el = document.getElementById('customer-search-input');
       if (el) { el.focus(); el.setSelectionRange(pos, pos); }
     }
+    if (e.target.id === 'reg-phone-num' || e.target.id === 'reg-phone-prefix') {
+      const prefix = document.getElementById('reg-phone-prefix')?.value || '050';
+      const num = document.getElementById('reg-phone-num')?.value.replace(/\D/g,'') || '';
+      state.form.phone = prefix + num;
+      state.phoneError = false;
+    }
+    if (e.target.id === 'forgot-phone-num' || e.target.id === 'forgot-phone-prefix') {
+      const prefix = document.getElementById('forgot-phone-prefix')?.value || '050';
+      const num = document.getElementById('forgot-phone-num')?.value.replace(/\D/g,'') || '';
+      state.forgotPhone = prefix + num;
+      state.phoneError = false;
+    }
     // note inputs don't need state - read directly from DOM on action
   }));
 }
@@ -382,9 +393,19 @@ function renderLogin() {
         </div>
         <div style="margin-bottom:1.25rem;">
           <label style="color:rgba(255,255,255,0.55);font-size:13px;display:block;margin-bottom:5px;">מספר טלפון</label>
-          <input id="forgot-phone" type="tel" placeholder="050-0000000" autocomplete="tel"
-            style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.2);border-radius:10px;padding:12px 14px;color:#fff;font-size:16px;outline:none;"
-            value="${state.forgotPhone}">
+          <div dir="ltr" style="display:flex;gap:8px;margin-bottom:14px;">
+            <select id="forgot-phone-prefix" style="background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.2);border-radius:10px;padding:12px 8px;color:#fff;font-size:15px;outline:none;cursor:pointer;flex-shrink:0;">
+              <option value="050" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='050'?'selected':'' }>050</option>
+              <option value="051" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='051'?'selected':'' }>051</option>
+              <option value="052" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='052'?'selected':'' }>052</option>
+              <option value="053" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='053'?'selected':'' }>053</option>
+              <option value="054" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='054'?'selected':'' }>054</option>
+              <option value="055" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='055'?'selected':'' }>055</option>
+              <option value="058" style="background:#111;" ${(state.form.phone||'050').slice(0,3)==='058'?'selected':'' }>058</option>
+            </select>
+            <input id="forgot-phone-num" type="tel" inputmode="numeric" placeholder="0000000" maxlength="7"
+              style="flex:1;background:${state.phoneError?'rgba(220,50,50,0.08)':'rgba(255,255,255,0.08)'};border:0.5px solid ${state.phoneError?'rgba(220,50,50,0.6)':'rgba(255,255,255,0.2)'};border-radius:10px;padding:12px 14px;color:${state.phoneError?'#ff6b6b':'#fff'};font-size:16px;outline:none;" value="${state.forgotPhone.slice(3)||''}">
+          </div>
         </div>
         ${state.error ? `<div style="background:rgba(220,50,50,0.15);border:0.5px solid rgba(220,50,50,0.4);color:#ff8080;padding:10px;border-radius:10px;font-size:14px;margin-bottom:1rem;text-align:center;">${state.error}</div>` : ''}
         <button data-action="forgot-send-otp" style="width:100%;padding:14px;background:${isDelete?'#7a1010':'#2a2a2a'};border:none;border-radius:12px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;">
@@ -456,7 +477,7 @@ function renderLogin() {
       <img src="${IMG}" class="logo-img" style="width:140px;height:140px;border-radius:50%;object-fit:cover;border:2px solid rgba(201,168,76,0.5);margin-bottom:8px;">
       <h1 style="color:#fff;font-size:24.2px;font-weight:600;letter-spacing:2px;">Lishay Barber</h1>
       <p style="color:rgba(255,255,255,0.45);font-size:15.4px;margin-top:6px;">מערכת ניהול תורים</p>
-      <p style="color:rgba(255,255,255,0.2);font-size:12.1px;margin-top:4px;">v20.5</p>
+      <p style="color:rgba(255,255,255,0.2);font-size:12.1px;margin-top:4px;">v20.6</p>
     </div>
     <div style="background:rgba(255,255,255,0.07);border:0.5px solid rgba(201,168,76,0.3);border-radius:20px;padding:1.75rem;width:100%;max-width:380px;">
       ${state.error?`<div style="background:rgba(220,50,50,0.15);border:0.5px solid rgba(220,50,50,0.4);color:#ff8080;padding:10px 14px;border-radius:10px;font-size:15.4px;margin-bottom:1rem;text-align:center;">${state.error}</div>`:''}
@@ -508,7 +529,19 @@ function renderLogin() {
         <div style="margin-bottom:14px;"><label style="color:rgba(255,255,255,0.55);font-size:13.2px;display:block;margin-bottom:5px;">שם מלא</label>
         <input id="reg-name" type="text" placeholder="ישראל ישראלי" autocomplete="name" style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 14px;color:#fff;outline:none;" value="${state.form.name||''}"></div>
         <div style="margin-bottom:14px;"><label style="color:rgba(255,255,255,0.55);font-size:13.2px;display:block;margin-bottom:5px;">טלפון</label>
-        <input id="reg-phone" type="tel" placeholder="050-0000000" autocomplete="tel" style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 14px;color:#fff;outline:none;" value="${state.form.phone||''}"></div>
+        <div dir="ltr" style="display:flex;gap:8px;margin-bottom:14px;">
+          <select id="reg-phone-prefix" style="background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 8px;color:#fff;font-size:15px;outline:none;cursor:pointer;flex-shrink:0;">
+            <option value="050" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='050'?'selected':'' }>050</option>
+            <option value="051" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='051'?'selected':'' }>051</option>
+            <option value="052" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='052'?'selected':'' }>052</option>
+            <option value="053" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='053'?'selected':'' }>053</option>
+            <option value="054" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='054'?'selected':'' }>054</option>
+            <option value="055" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='055'?'selected':'' }>055</option>
+            <option value="058" style="background:#111;" ${(state.forgotPhone||'050').slice(0,3)==='058'?'selected':'' }>058</option>
+          </select>
+          <input id="reg-phone-num" type="tel" inputmode="numeric" placeholder="0000000" maxlength="7"
+            style="flex:1;background:${state.phoneError?'rgba(220,50,50,0.08)':'rgba(255,255,255,0.08)'};border:0.5px solid ${state.phoneError?'rgba(220,50,50,0.6)':'rgba(255,255,255,0.18)'};border-radius:10px;padding:12px 14px;color:${state.phoneError?'#ff6b6b':'#fff'};outline:none;font-size:15px;" value="${(state.form.phone||'').slice(3)||''}">
+        </div></div>
         <div style="margin-bottom:14px;"><label style="color:rgba(255,255,255,0.55);font-size:13.2px;display:block;margin-bottom:5px;">שם משתמש</label>
         <input id="reg-user" type="text" placeholder="username" autocomplete="username" style="width:100%;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:12px 14px;color:#fff;outline:none;" value="${state.form.username||''}"></div>
         <div style="margin-bottom:1.75rem;"><label style="color:rgba(255,255,255,0.55);font-size:13.2px;display:block;margin-bottom:5px;">סיסמה</label>
@@ -733,14 +766,35 @@ function renderOwnerAvailability() {
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
         ${slots.map(t=>{
           const isOpen = state.availability.some(a=>a.date===selDate&&a.time===t);
-          const isBooked = state.appointments.some(a=>a.date===selDate&&a.time===t);
-          return `<button data-action="avail-toggle" data-date="${selDate}" data-time="${t}" data-booked="${isBooked}" style="padding:10px 4px;border-radius:8px;border:0.5px solid ${isBooked?'rgba(201,168,76,0.3)':isOpen?'rgba(76,175,80,0.5)':'rgba(255,255,255,0.08)'};background:${isBooked?'rgba(201,168,76,0.12)':isOpen?'rgba(76,175,80,0.12)':'rgba(255,255,255,0.03)'};color:${isBooked?'#c9a84c':isOpen?'#4caf50':'rgba(255,255,255,0.3)'};cursor:${isBooked?'default':'pointer'};text-align:center;opacity:${isBooked?'0.7':'1'};">
+          const bookedAppt = state.appointments.find(a=>a.date===selDate&&a.time===t);
+          const isPending = bookedAppt?.status==='pending';
+          const isBooked = !!bookedAppt && !isPending;
+          const borderColor = isPending?'rgba(255,152,0,0.5)':isBooked?'rgba(201,168,76,0.3)':isOpen?'rgba(76,175,80,0.5)':'rgba(255,255,255,0.08)';
+          const bgColor = isPending?'rgba(255,152,0,0.12)':isBooked?'rgba(201,168,76,0.12)':isOpen?'rgba(76,175,80,0.12)':'rgba(255,255,255,0.03)';
+          const txtColor = isPending?'#ff9800':isBooked?'#c9a84c':isOpen?'#4caf50':'rgba(255,255,255,0.3)';
+          const label = isPending?'ממתין':isBooked?'תפוס':isOpen?'פתוח':'סגור';
+          const act = isPending?'avail-pending-appt':'avail-toggle';
+          const apptId = bookedAppt?.id||'';
+          return `<button data-action="${act}" data-date="${selDate}" data-time="${t}" data-booked="${isBooked||isPending}" data-appt-id="${apptId}" style="padding:10px 4px;border-radius:8px;border:0.5px solid ${borderColor};background:${bgColor};color:${txtColor};cursor:${(isBooked)?'default':'pointer'};text-align:center;opacity:${isBooked?'0.7':'1'};">
             <div style="font-size:14.3px;font-weight:500;pointer-events:none;">${t}</div>
-            <div style="font-size:9.9px;margin-top:2px;pointer-events:none;">${isBooked?'קבוע':isOpen?'פתוח':'סגור'}</div>
+            <div style="font-size:9.9px;margin-top:2px;pointer-events:none;">${label}</div>
           </button>`;
         }).join('')}
       </div>
     </div>` : `<div style="text-align:center;color:rgba(255,255,255,0.25);padding:2rem;font-size:14.3px;">בחר יום לניהול השעות</div>`}
+  ${state.availPendingAppt ? `
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;" data-action="avail-modal-close">
+      <div style="background:#1a1a1a;border:0.5px solid rgba(255,255,255,0.12);border-radius:18px;padding:22px;width:100%;max-width:340px;" data-action="modal-inner">
+        <div style="font-size:16px;font-weight:600;color:#fff;margin-bottom:4px;">${state.availPendingAppt.customer_name}</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.45);margin-bottom:16px;">${state.availPendingAppt.time} · ${state.availPendingAppt.date.split('-').reverse().join('/')} · ${SERVICES.find(s=>s.id===state.availPendingAppt.service)?.name||''}</div>
+        <textarea id="avail-note" placeholder="הערה ללקוח (אופציונלי)" style="width:100%;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.15);border-radius:10px;padding:10px;color:#fff;font-size:14px;resize:none;height:70px;outline:none;margin-bottom:14px;"></textarea>
+        <div style="display:flex;gap:10px;">
+          <button data-action="avail-approve" data-id="${state.availPendingAppt.id}" style="flex:1;padding:12px;background:rgba(76,175,80,0.15);border:0.5px solid rgba(76,175,80,0.4);border-radius:12px;color:#4caf50;font-size:15px;font-weight:600;cursor:pointer;">✅ אשר</button>
+          <button data-action="avail-reject" data-id="${state.availPendingAppt.id}" style="flex:1;padding:12px;background:rgba(220,50,50,0.15);border:0.5px solid rgba(220,50,50,0.4);border-radius:12px;color:#ff6b6b;font-size:15px;font-weight:600;cursor:pointer;">❌ דחה</button>
+        </div>
+        <button data-action="avail-modal-close" style="width:100%;margin-top:10px;padding:10px;background:transparent;border:0.5px solid rgba(255,255,255,0.1);border-radius:12px;color:rgba(255,255,255,0.4);font-size:14px;cursor:pointer;">ביטול</button>
+      </div>
+    </div>` : ''}
   </div>`;
 }
 
@@ -1045,7 +1099,19 @@ function renderCustomer() {
         <div style="font-size:12px;color:rgba(255,100,100,0.8);margin-bottom:20px;font-weight:600;">⚠️ לא ניתן לבטל פעולה זו</div>
         <div style="display:flex;gap:10px;">
           <button data-action="cancel-delete-account" style="flex:1;padding:13px;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.8);border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;">ביטול</button>
-          <button data-action="confirm-delete-account" style="flex:1;padding:13px;background:#c03030;border:none;color:#fff;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;">מחק חשבון</button>
+          <button data-action="confirm-delete-account" style="flex:1;padding:13px;background:#c03030;border:none;color:#fff;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;">המשך למחיקה</button>
+        </div>
+      </div>
+    </div>` : ''}
+    ${state.confirmDeleteFinal ? `
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;display:flex;align-items:center;justify-content:center;padding:2rem;">
+      <div style="background:#1a1a1a;border:1.5px solid #c03030;border-radius:18px;padding:1.75rem;width:100%;max-width:340px;text-align:center;">
+        <div style="font-size:44px;margin-bottom:12px;">⚠️</div>
+        <div style="font-size:18px;font-weight:700;color:#ff4444;margin-bottom:12px;">אישור סופי</div>
+        <div style="font-size:14px;color:rgba(255,255,255,0.7);line-height:1.7;margin-bottom:20px;">פעולה זו <strong style="color:#ff4444;">בלתי הפיכה</strong>.<br>החשבון שלך וכל התורים שנקבעו ימחקו לצמיתות.<br>הודעה תישלח לבעל המספרה.</div>
+        <div style="display:flex;gap:10px;">
+          <button data-action="cancel-delete-final" style="flex:1;padding:13px;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.8);border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;">ביטול</button>
+          <button data-action="confirm-delete-final" style="flex:1;padding:13px;background:#c03030;border:none;color:#fff;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;">מחק סופית</button>
         </div>
       </div>
     </div>` : ''}
@@ -1280,10 +1346,14 @@ async function handleAction(e) {
     state.forgotType=e.currentTarget.dataset.type; render();
   }
   else if (action==='forgot-send-otp') {
-    const phone = document.getElementById('forgot-phone')?.value?.trim() || state.forgotPhone;
-    if (!phone || phone.replace(/\D/g,'').length < 9) {
-      state.error='יש להזין מספר טלפון תקין'; render(); return;
+    const fPrefix = document.getElementById('forgot-phone-prefix')?.value || '050';
+    const fNum = (document.getElementById('forgot-phone-num')?.value || '').replace(/\D/g,'');
+    const phone = fPrefix + fNum;
+    if (fNum.length !== 7 || fNum.startsWith('0') || fNum.startsWith('1')) {
+      state.error = fNum.length !== 7 ? 'מספר הטלפון חייב להכיל 7 ספרות' : 'מספר הטלפון לא יכול להתחיל ב-0 או 1';
+      state.phoneError = true; render(); return;
     }
+    state.phoneError = false;
     state.forgotPhone = phone;
     state.error = '';
 
@@ -1384,7 +1454,13 @@ async function handleAction(e) {
     const username=state.form.username||document.getElementById('reg-user')?.value||'';
     const password=state.form.password||document.getElementById('reg-pass')?.value||'';
     if (!name||!phone||!username||!password) { state.error='יש למלא את כל השדות'; render(); return; }
-    if (phone.replace(/\D/g,'').length < 9) { state.error='מספר טלפון לא תקין'; render(); return; }
+    const phoneDigits = phone.replace(/\D/g,'');
+    const regNum = phoneDigits.slice(3);
+    if (phoneDigits.length !== 10 || regNum.startsWith('0') || regNum.startsWith('1')) {
+      state.error = phoneDigits.length !== 10 ? 'מספר הטלפון חייב להכיל 7 ספרות' : 'מספר הטלפון לא יכול להתחיל ב-0 או 1';
+      state.phoneError = true; render(); return;
+    }
+    state.phoneError = false;
     if (username==='admin'||username==='sadmin') { state.error='שם משתמש זה שמור'; render(); return; }
     // שמור את הפרטים ושלח קוד אימות
     state.form = { name, phone, username, password };
@@ -1533,6 +1609,26 @@ async function handleAction(e) {
   else if (action==='avail-month-prev') { if(state.availMonthOffset>0)state.availMonthOffset--; render(); }
   else if (action==='avail-month-next') { state.availMonthOffset++; render(); }
   else if (action==='avail-select-date') { if(e.currentTarget.dataset.past==='true') return; state.availSelectedDate=e.currentTarget.dataset.date; render(); }
+  else if (action==='avail-modal-close') {
+    state.availPendingAppt = null; render();
+  }
+  else if (action==='avail-approve') {
+    const id = e.currentTarget.dataset.id;
+    const note = document.getElementById('avail-note')?.value||'';
+    state.availPendingAppt = null;
+    doUpdateApptStatus(id, 'approved', note||'התור שלך אושר! נשמח לראותך.');
+  }
+  else if (action==='avail-reject') {
+    const id = e.currentTarget.dataset.id;
+    const note = document.getElementById('avail-note')?.value||'';
+    state.availPendingAppt = null;
+    doUpdateApptStatus(id, 'rejected', note);
+  }
+  else if (action==='avail-pending-appt') {
+    const apptId = e.currentTarget.dataset.apptId;
+    const appt = state.appointments.find(a=>a.id===apptId);
+    if (appt) { state.availPendingAppt = appt; render(); }
+  }
   else if (action==='avail-toggle') {
     const date=e.currentTarget.dataset.date; const time=e.currentTarget.dataset.time;
     if(e.currentTarget.dataset.booked==='true') return;
@@ -1622,8 +1718,20 @@ async function handleAction(e) {
   else if (action==='cancel-delete-account') { state.confirmDeleteAccount=false; render(); }
   else if (action==='confirm-delete-account') {
     state.confirmDeleteAccount=false;
-    doDeleteUser(state.user.id, state.user.name);
+    state.confirmDeleteFinal=true;
+    render();
+  }
+  else if (action==='confirm-delete-final') {
+    state.confirmDeleteFinal=false;
+    const userName = state.user.name;
+    const userUsername = state.user.username;
+    const userPhone = state.user.phone;
+    if (OWNER_PHONE) _wa(OWNER_PHONE, `🗑 *חשבון נמחק*\n👤 ${userName} (@${userUsername})\n📞 ${userPhone}\nהלקוח מחק את חשבונו וכל התורים שלו.`).catch(()=>{});
+    doDeleteUser(state.user.id, userName);
     state.user=null; state.view='login'; clearSession(); render();
+  }
+  else if (action==='cancel-delete-final') {
+    state.confirmDeleteFinal=false; render();
   }
   else if (action==='confirm-cancel-yes') {
     const id=state.confirmCancel?.id;
