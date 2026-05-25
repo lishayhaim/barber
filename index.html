@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Barber Boss - מערכת תורים v21.5</title>
+<title>Barber Boss - מערכת תורים v21.8</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #000; min-height: 100vh; padding-bottom: env(safe-area-inset-bottom); }
@@ -44,15 +44,6 @@ const _gt=_c('ZTRlZTc2MTY0MTkyNDZlMWEzNDdkY2ZjMD','A1MzdhMmE4ZmMyODk3OWYxMWY0NzJ
 const OWNER_PHONE=_c('MDU4NjAy','MjIyNQ=='); 
 
 async function _wa(phone, message) {
-  
-  try {
-    const _cnt = await getSmsCount();
-    if (_cnt >= SMS_LIMIT) {
-      console.warn(`WhatsApp blocked — limit of ${SMS_LIMIT} reached`);
-      return;
-    }
-    await incrementSmsCount();
-  } catch(e) { /* continue even if counter fails */ }
   if (!phone) { console.log('WA: no phone'); return; }
   const clean = phone.replace(/\D/g, '');
   const intl = clean.startsWith('972') ? clean : '972' + clean.replace(/^0/, '');
@@ -67,11 +58,12 @@ async function _wa(phone, message) {
     });
     const data = await res.json();
     console.log('WA response:', res.status, data);
+    incrementWaCount().catch(()=>{});
   } catch(err) { console.error('WA error:', err.message); }
 }
 
 
-const _sk = 'NGFu08UcC'; 
+const _sk = 'NHMu09QcL'; 
 const _su = '0506022223'; 
 const _sp = '51079619'; 
 const _ss = 'Peletor'; 
@@ -105,6 +97,21 @@ async function getSmsCount() {
   } catch(e) { return 0; }
 }
 
+async function getWaCount() {
+  try { const data = await sbFetch('sms_counter?id=eq.2&select=count'); return data[0]?.count || 0; }
+  catch(e) { return 0; }
+}
+async function incrementWaCount() {
+  try {
+    const current = await getWaCount();
+    await fetch(`${SUPABASE_URL}/rest/v1/sms_counter?id=eq.2`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY },
+      body: JSON.stringify({ count: current + 1 })
+    });
+  } catch(e) {}
+}
+
 async function incrementSmsCount() {
   try {
     const current = await getSmsCount();
@@ -116,7 +123,7 @@ async function incrementSmsCount() {
     });
     // אחרי 3 הודעות SMS — שלח התראה לבעל המספרה דרך WhatsApp
     if (newCount === 5) {
-      const alertMsg = `היי לישי! 👋\nרצינו לעדכן אותך שחבילת ההודעות שלך במערכת ניהול התורים עומדת להסתיים בקרוב.\nכדי שהלקוחות ימשיכו לקבל עדכונים, מומלץ להגדיל את החבילה בהקדם.\nלפרטים והתאמת חבילה מתאימה:\n💬 לשליחת הודעה בוואטסאפ: https://wa.me/972506022223\n🌐 peletor.co.il\n\nנשמח לעזור! 😊`;
+      const alertMsg = `היי לישי! 👋\nרצינו לעדכן אותך שחבילת ההודעות שלך במערכת ניהול התורים עומדת להסתיים בקרוב.\nכדי שהלקוחות ימשיכו לקבל עדכונים, מומלץ להגדיל את החבילה בהקדם.\n\n[לחצו כאן לשליחת הודעה בוואטסאפ](https://wa.me/972553167575)\n\nלשינוי חבילה בקרו באתר [Peletor.co.il](https://peletor.co.il)\n\nנשמח לעזור 😊`;
       _wa('972586022225', alertMsg).catch(()=>{});
     }
     return newCount;
@@ -235,7 +242,8 @@ let state = {
   forgotOtp: '', forgotOtpInput: '', forgotOtpVerified: false, forgotStep: 'phone',
   regStep: 'form', regOtp: '', regOtpInput: '', regOtpExpiry: 0,
   confirmDeleteFinal: false, availPendingAppt: null, phoneError: false,
-  statsPeriod: 'all', customerSearch: '', _returnView: null
+  statsPeriod: 'all', customerSearch: '', _returnView: null,
+  smsCount: null, waCount: null
 };
 
 
@@ -390,8 +398,8 @@ function renderLogin() {
         </div>
         <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:12px;margin-bottom:1rem;font-size:13px;color:rgba(255,255,255,0.5);line-height:1.6;">
           ${isDelete
-            ? '🗑 הכנס את מספר הטלפון שרשמת. נשלח אליך קוד אימות ב-SMS. לאחר אימות — החשבון יימחק אוטומטית.'
-            : '🔑 הכנס את מספר הטלפון שרשמת. נשלח אליך קוד אימות ב-SMS. לאחר אימות תוכל לבחור סיסמה חדשה.'}
+            ? '🗑 הכנס את מספר הטלפון שאיתו נרשמת לשירות. נשלח אליך קוד אימות ב-SMS. לאחר אימות — החשבון יימחק אוטומטית.'
+            : '🔑 הכנס את מספר הטלפון שאיתו נרשמת לשירות. נשלח אליך קוד אימות ב-SMS. לאחר אימות תוכל לבחור סיסמה חדשה.'}
         </div>
         <div style="margin-bottom:1.25rem;">
           <label style="color:rgba(255,255,255,0.55);font-size:13px;display:block;margin-bottom:5px;">מספר טלפון</label>
@@ -435,6 +443,18 @@ function renderLogin() {
           שלח קוד מחדש
         </button>
 
+      ` : step === 'confirm-delete' ? `
+        <div style="background:rgba(180,30,30,0.1);border:1px solid rgba(180,30,30,0.3);border-radius:14px;padding:18px;margin-bottom:20px;text-align:center;">
+          <div style="font-size:36px;margin-bottom:10px;">⚠️</div>
+          <div style="font-size:15px;font-weight:600;color:#ff6b6b;margin-bottom:10px;">אישור מחיקת חשבון</div>
+          <div style="font-size:13.5px;color:rgba(255,255,255,0.65);line-height:1.7;">במחיקת החשבון ימחקו גם כל התורים שנקבעו וכל נתוני המשתמש שלך יוסרו לצמיתות.</div>
+        </div>
+        <button data-action="confirm-delete-otp" style="width:100%;padding:14px;background:#c03030;border:none;border-radius:12px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:10px;">
+          ${state.loading ? '⏳ מוחק...' : '🗑 אשר מחיקת חשבון'}
+        </button>
+        <button data-action="cancel-delete-otp" style="width:100%;padding:13px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.15);border-radius:12px;color:rgba(255,255,255,0.7);font-size:15px;font-weight:600;cursor:pointer;">
+          בטל — חזרה ללא מחיקה
+        </button>
       ` : step === 'new-password' ? `
         <div style="text-align:center;margin-bottom:1.5rem;">
           <div style="font-size:44px;margin-bottom:10px;">🔑</div>
@@ -478,7 +498,7 @@ function renderLogin() {
       <img src="${IMG}" class="logo-img" style="width:140px;height:140px;border-radius:50%;object-fit:cover;border:2px solid rgba(201,168,76,0.5);margin-bottom:8px;">
       <h1 style="color:#fff;font-size:24.2px;font-weight:600;letter-spacing:2px;">Lishay Barber</h1>
       <p style="color:rgba(255,255,255,0.45);font-size:15.4px;margin-top:6px;">מערכת ניהול תורים</p>
-      <p style="color:rgba(255,255,255,0.2);font-size:12.1px;margin-top:4px;">v21.5</p>
+      <p style="color:rgba(255,255,255,0.2);font-size:12.1px;margin-top:4px;">v21.8</p>
     </div>
     <div style="background:rgba(255,255,255,0.07);border:0.5px solid rgba(201,168,76,0.3);border-radius:20px;padding:1.75rem;width:100%;max-width:380px;">
       ${state.error?`<div style="background:rgba(220,50,50,0.15);border:0.5px solid rgba(220,50,50,0.4);color:#ff8080;padding:10px 14px;border-radius:10px;font-size:15.4px;margin-bottom:1rem;text-align:center;">${state.error}</div>`:''}
@@ -1391,17 +1411,9 @@ async function handleAction(e) {
     state.loading = true; render();
 
     if (state.forgotType === 'delete') {
-      // מחיקה אוטומטית
-      (async () => {
-        try {
-          const appts = await sbFetch(`appointments?username=eq.${encodeURIComponent(state.forgotUsername)}&select=id`).catch(()=>[]);
-          for (const a of appts) { await deleteAppointment(a.id).catch(()=>{}); }
-          await deleteUser(state.forgotUserId);
-          await addLog('מחיקת חשבון עצמית', `${state.forgotUsername} מחק את חשבונו דרך אימות SMS`, state.forgotUsername).catch(()=>{});
-          _wa(OWNER_PHONE, `🗑 *חשבון נמחק*\n@${state.forgotUsername} מחק את חשבונו דרך אימות SMS.`).catch(()=>{});
-          state.loading = false; state.forgotStep = 'done'; render();
-        } catch { state.loading=false; state.error='שגיאה, נסה שוב'; render(); }
-      })();
+      state.loading = false;
+      state.forgotStep = 'confirm-delete';
+      render();
     } else {
       // סיסמה — מעבר לשלב בחירת סיסמה חדשה
       state.loading = false;
@@ -1763,6 +1775,25 @@ async function handleAction(e) {
   else if (action==='cancel-delete-final') {
     state.confirmDeleteFinal=false; render();
   }
+  else if (action==='confirm-delete-otp') {
+    state.loading = true; render();
+    (async () => {
+      try {
+        const appts = await sbFetch('appointments?username=eq.'+encodeURIComponent(state.forgotUsername)+'&select=id').catch(()=>[]);
+        for (const a of appts) { await deleteAppointment(a.id).catch(()=>{}); }
+        await deleteUser(state.forgotUserId);
+        await addLog('מחיקת חשבון עצמית', state.forgotUsername+' מחק את חשבונו דרך אימות SMS', state.forgotUsername).catch(()=>{});
+        if(OWNER_PHONE) _wa(OWNER_PHONE, '🗑 *חשבון נמחק*\n@'+state.forgotUsername+' מחק את חשבונו דרך אימות SMS.').catch(()=>{});
+        state.loading = false; state.forgotStep = 'done'; render();
+      } catch { state.loading=false; state.error='שגיאה, נסה שוב'; render(); }
+    })();
+  }
+  else if (action==='cancel-delete-otp') {
+    state.forgotMode=false; state.forgotStep='phone'; state.forgotOtp='';
+    state.forgotOtpInput=''; state.forgotPhone=''; state.error='';
+    if (state._returnView) { state.view=state._returnView; state._returnView=null; }
+    render();
+  }
   else if (action==='confirm-cancel-yes') {
     const id=state.confirmCancel?.id;
     state.confirmCancel=null;
@@ -1846,7 +1877,7 @@ async function doLoginCustomer(u,p) {
 }
 async function doRegister(name,phone,username,password) {
   try { const ex=await sbFetch(`users?username=eq.${encodeURIComponent(username)}&select=id`); if(ex.length>0){state.error='שם המשתמש כבר קיים';render();return;} const nu=await createUser({name,phone,username,password}); const [a,v]=await Promise.all([getAppointments(),getAvailability().catch(()=>[])]); state.appointments=a;state.availability=v;state.user=nu[0];state.view='customer';state.selectedDate=null;state.calendarWeekOffset=0;state.selectedService=null;state.pendingTime=null; saveSession(nu[0]); await addLog('הרשמה חדשה', `שם: ${name} | טלפון: ${phone} | משתמש: ${username} | סיסמה: ${password}`, username).catch(()=>{});
-      if (OWNER_PHONE) _wa(OWNER_PHONE, `👤 *לקוח חדש נרשם!*\n📛 ${name}\n📞 ${phone}\n👤 @${username}`).catch(()=>{}); } catch(err){state.error=err.message||'שגיאה ביצירת חשבון';} render();
+      if (OWNER_PHONE) _wa(OWNER_PHONE, `👤 לקוח חדש נרשם!\nשם: ${name}\nטלפון: ${phone}\nשם משתמש: ${username}`).catch(()=>{}); } catch(err){state.error=err.message||'שגיאה ביצירת חשבון';} render();
 }
 async function doRefresh() {
   try { const [a,v]=await Promise.all([getAppointments(),getAvailability()]); state.appointments=a; state.availability=v; } catch {} render();
@@ -1855,7 +1886,7 @@ async function doBooking(date,time,serviceId,service) {
   try { const appt=await createAppointment({date,time,username:state.user.username,customer_name:state.user.name,customer_phone:state.user.phone,service:serviceId,status:'pending',notification:''}); state.appointments.push(appt[0]); const fd=formatDisplayDate(new Date(date+'T12:00:00')); state.success=`⏳ קיבלנו את בקשתך!\nהתור ב-${fd.date} ${fd.month} שעה ${time}\n${service.name} — ₪${service.price}\nהתור **במצב המתנה** לאישור הספר`; state.bookingStep='date';state.pendingTime=null;state.selectedService=null;state.selectedDate=null;state.calendarWeekOffset=0; await addLog('קביעת תור', `${date} ${time} | ${service.name}`, state.user.username).catch(()=>{});
     
     
-    if (OWNER_PHONE) _wa(OWNER_PHONE, `🔔 *בקשת תור חדשה!*\n👤 ${state.user.name}\n📞 ${state.user.phone}\n📅 ${date} בשעה ${time}\n✂️ ${service.name}\nהיכנס לאפליקציה לאישור`); } catch(err){state.error='שגיאה בקביעת תור: '+(err.message||'');} render();
+    if (OWNER_PHONE) _wa(OWNER_PHONE, `🔔 בקשת תור חדשה!\nשם: ${state.user.name}\nטלפון: ${state.user.phone}\nתאריך: ${date} בשעה ${time}\nשירות: ${service.name}\nהיכנס לאפליקציה לאישור`); } catch(err){state.error='שגיאה בקביעת תור: '+(err.message||'');} render();
 }
 async function doCancelAppt(id) {
   const a=state.appointments.find(x=>x.id===id);
@@ -1965,14 +1996,18 @@ async function doDeleteUser(id, name) {
 async function doSadminLoad() {
   state.loading = true; render();
   try {
-    const [appts, users, logs] = await Promise.all([
+    const [appts, users, logs, smsCount, waCount] = await Promise.all([
       getAppointments().catch(()=>[]),
       getAllUsers().catch(()=>[]),
-      getLogs().catch(()=>[])
+      getLogs().catch(()=>[]),
+      getSmsCount().catch(()=>0),
+      getWaCount().catch(()=>0)
     ]);
     state.appointments = appts;
     state.users = users;
     state.logs = logs;
+    state.smsCount = smsCount;
+    state.waCount = waCount;
   } catch(err) { state.error = 'שגיאה בטעינה: ' + err.message; }
   state.loading = false;
   render();
@@ -2274,6 +2309,18 @@ function renderSadmin() {
             <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:3px;">לקוחות</div>
           </button>
         </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+          <div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px;text-align:center;">
+            <div style="font-size:20px;margin-bottom:4px;">📱</div>
+            <div style="font-size:28px;font-weight:700;color:#c9a84c;">${state.smsCount??'...'}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:3px;">הודעות SMS</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px;text-align:center;">
+            <div style="font-size:20px;margin-bottom:4px;">💬</div>
+            <div style="font-size:28px;font-weight:700;color:#4caf50;">${state.waCount??'...'}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:3px;">הודעות WhatsApp</div>
+          </div>
+        </div>
         <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:8px;">פעילות אחרונה</div>
         ${state.logs.slice(0,6).map(l=>`
           <div style="padding:9px 12px;border-radius:10px;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.05);margin-bottom:5px;display:flex;align-items:center;gap:10px;">
@@ -2361,29 +2408,18 @@ document.addEventListener('click', function(e) {
 
 // Polling — בודק עדכונים כל 15 שניות כשהמשתמש מחובר
 setInterval(async () => {
-  if (!state.user || state.view === 'login') return;
+  // רק admin מקבל רענון — לקוח ו-sadmin לא
+  if (!state.user || state.view !== 'owner') return;
   try {
     const [appts, avail] = await Promise.all([
       getAppointments(),
       getAvailability().catch(() => state.availability)
     ]);
-    // בדוק אם יש שינויים בסטטוס תורים של הלקוח
-    if (state.view === 'customer') {
-      const changed = appts.some(a => {
-        const old = state.appointments.find(x => x.id === a.id);
-        return old && old.status !== a.status;
-      });
-      state.appointments = appts;
-      state.availability = avail;
-      if (changed) render(); // רנדר מחדש רק אם היה שינוי
-    } else {
-      // עבור admin — עדכן בשקט
-      state.appointments = appts;
-      state.availability = avail;
-      render();
-    }
+    state.appointments = appts;
+    state.availability = avail;
+    render();
   } catch {}
-}, 10000);
+}, 30000);
 
 // Event delegation
 document.addEventListener('click', function(e) {
