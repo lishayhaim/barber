@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Barber Boss - מערכת תורים v21.8</title>
+<title>Barber Boss - מערכת תורים v22.1</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #000; min-height: 100vh; padding-bottom: env(safe-area-inset-bottom); }
@@ -17,6 +17,14 @@ button { font-family: inherit; }
 </style>
 </head>
 <body>
+<div id="ann-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9998;align-items:center;justify-content:center;padding:2rem;transition:opacity 0.6s ease;">
+  <div style="background:#1a1a1a;border:1px solid rgba(201,168,76,0.3);border-radius:20px;padding:2rem;width:100%;max-width:340px;text-align:center;position:relative;">
+    <button onclick="const p=document.getElementById('ann-popup');p.style.opacity='0';setTimeout(()=>{p.style.display='none';},600);" style="position:absolute;top:12px;left:12px;background:rgba(255,255,255,0.1);border:none;color:rgba(255,255,255,0.6);width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+    <div style="font-size:28px;margin-bottom:10px;">✂️</div>
+    <div style="font-size:16px;font-weight:600;color:#c9a84c;margin-bottom:12px;">הודעה מהמספרה</div>
+    <div id="ann-text" style="font-size:15px;color:rgba(255,255,255,0.85);line-height:1.7;white-space:pre-wrap;"></div>
+  </div>
+</div>
 <div id="splash" style="position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:9999;opacity:1;transition:opacity 0.6s ease;">
   <div style="position:relative;display:inline-block;">
     <img src="" id="splash-logo" style="width:240px;height:240px;border-radius:50%;object-fit:cover;display:block;opacity:0;transition:opacity 0.8s ease;" />
@@ -97,6 +105,34 @@ async function getSmsCount() {
   } catch(e) { return 0; }
 }
 
+async function getAnnouncement() {
+  try { const data = await sbFetch('announcements?id=eq.1&select=*'); return data[0]||null; }
+  catch(e) { return null; }
+}
+async function saveAnnouncement(text, duration, seconds) {
+  seconds = seconds||4;
+  const now = Date.now();
+  const expires = duration==='permanent' ? null :
+    duration==='12h' ? new Date(now+12*3600000).toISOString() :
+    duration==='24h' ? new Date(now+24*3600000).toISOString() :
+    new Date(now+48*3600000).toISOString();
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/announcements?id=eq.1`, {
+      method:'PATCH',
+      headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY},
+      body:JSON.stringify({text,duration,seconds:seconds,expires_at:expires,active:true})
+    });
+  } catch(e) {}
+}
+async function clearAnnouncement() {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/announcements?id=eq.1`, {
+      method:'PATCH',
+      headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY},
+      body:JSON.stringify({active:false})
+    });
+  } catch(e) {}
+}
 async function getWaCount() {
   try { const data = await sbFetch('sms_counter?id=eq.2&select=count'); return data[0]?.count || 0; }
   catch(e) { return 0; }
@@ -243,7 +279,8 @@ let state = {
   regStep: 'form', regOtp: '', regOtpInput: '', regOtpExpiry: 0,
   confirmDeleteFinal: false, availPendingAppt: null, phoneError: false,
   statsPeriod: 'all', customerSearch: '', _returnView: null,
-  smsCount: null, waCount: null
+  smsCount: null, waCount: null,
+  announcement: null, _annShown: false, showAnnModal: false
 };
 
 
@@ -337,6 +374,26 @@ function isPastSlot(dateStr, time) {
 }
 
 function render() {
+  if (state.announcement && state.announcement.active && state.user && state.user.role==='customer' && !state._annShown) {
+    const ann = state.announcement;
+    const expired = ann.expires_at && new Date(ann.expires_at) < new Date();
+    if (!expired && ann.text) {
+      state._annShown = true;
+      setTimeout(function() {
+        const popup = document.getElementById('ann-popup');
+        const textEl = document.getElementById('ann-text');
+        if (popup && textEl) {
+          textEl.textContent = ann.text;
+          popup.style.display = 'flex';
+          const secs = (ann.seconds||4)*1000;
+          setTimeout(function() {
+            popup.style.opacity = '0';
+            setTimeout(function() { popup.style.display = 'none'; }, 600);
+          }, secs);
+        }
+      }, 300);
+    }
+  }
   const app = document.getElementById('app');
   if (state.view==='login') app.innerHTML = renderLogin();
   else if (state.view==='owner') app.innerHTML = renderOwner();
@@ -498,7 +555,7 @@ function renderLogin() {
       <img src="${IMG}" class="logo-img" style="width:140px;height:140px;border-radius:50%;object-fit:cover;border:2px solid rgba(201,168,76,0.5);margin-bottom:8px;">
       <h1 style="color:#fff;font-size:24.2px;font-weight:600;letter-spacing:2px;">Lishay Barber</h1>
       <p style="color:rgba(255,255,255,0.45);font-size:15.4px;margin-top:6px;">מערכת ניהול תורים</p>
-      <p style="color:rgba(255,255,255,0.2);font-size:12.1px;margin-top:4px;">v21.8</p>
+      <p style="color:rgba(255,255,255,0.2);font-size:12.1px;margin-top:4px;">v22.1</p>
     </div>
     <div style="background:rgba(255,255,255,0.07);border:0.5px solid rgba(201,168,76,0.3);border-radius:20px;padding:1.75rem;width:100%;max-width:380px;">
       ${state.error?`<div style="background:rgba(220,50,50,0.15);border:0.5px solid rgba(220,50,50,0.4);color:#ff8080;padding:10px 14px;border-radius:10px;font-size:15.4px;margin-bottom:1rem;text-align:center;">${state.error}</div>`:''}
@@ -591,6 +648,7 @@ function renderOwner() {
       </div>
       <button data-action="logout" style="background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);padding:8px 14px;border-radius:10px;font-size:14.3px;cursor:pointer;">יציאה</button>
       <button data-action="refresh-appts" style="background:rgba(201,168,76,0.15);border:0.5px solid rgba(201,168,76,0.3);color:#c9a84c;padding:8px 10px;border-radius:10px;font-size:17.6px;cursor:pointer;">↻</button>
+      <button data-action="open-ann-modal" style="background:rgba(201,168,76,0.12);border:0.5px solid rgba(201,168,76,0.35);color:#c9a84c;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">✉️ הודעת פתיחה</button>
     </div>
     <div style="display:flex;gap:10px;padding:1rem;border-bottom:0.5px solid rgba(255,255,255,0.06);">
       <button data-action="stat-click" data-filter="today" style="flex:1;background:${state.listFilter==='today'?'rgba(201,168,76,0.2)':'rgba(201,168,76,0.1)'};border:${state.listFilter==='today'?'1px solid rgba(201,168,76,0.6)':'0.5px solid rgba(201,168,76,0.25)'};border-radius:12px;padding:12px;text-align:center;cursor:pointer;">
@@ -616,6 +674,30 @@ function renderOwner() {
       ${tab==='calendar' ? renderOwnerCalendar() : tab==='list' ? renderOwnerList() : tab==='availability' ? renderOwnerAvailability() : tab==='customers' ? renderOwnerCustomers() : tab==='stats' ? renderOwnerStats() : renderOwnerLogs()}
     </div>
   </div>
+  ${state.showAnnModal ? `
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;" data-action="close-ann-modal">
+      <div style="background:#1a1a1a;border:0.5px solid rgba(201,168,76,0.3);border-radius:18px;padding:22px;width:100%;max-width:360px;" data-action="modal-inner">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><div style="font-size:16px;font-weight:600;color:#c9a84c;">✉️ הודעת פתיחה ללקוחות</div><button data-action="close-ann-modal" style="background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button></div>
+        <textarea id="ann-input" placeholder="כתוב הודעה שתופיע ללקוחות בכניסה..." style="width:100%;height:90px;background:rgba(255,255,255,0.07);border:0.5px solid rgba(255,255,255,0.18);border-radius:10px;padding:10px;color:#fff;font-size:14px;resize:none;outline:none;font-family:inherit;margin-bottom:12px;">${(()=>{const a=state.announcement;const exp=a&&a.expires_at&&new Date(a.expires_at)<new Date();return (a&&a.active&&a.text&&!exp)?a.text:'';})()}</textarea>
+        <div style="margin-bottom:12px;">
+          <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:6px;">משך הצגה ללקוח (שניות):</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input id="ann-seconds" type="range" min="2" max="10" step="1" value="${(()=>{const a=state.announcement;return (a&&a.seconds)||4;})()}" style="flex:1;accent-color:#c9a84c;" oninput="document.getElementById('ann-sec-val').textContent=this.value">
+            <span id="ann-sec-val" style="color:#c9a84c;font-weight:700;min-width:24px;text-align:center;">${(()=>{const a=state.announcement;return (a&&a.seconds)||4;})()}</span>
+            <span style="font-size:12px;color:rgba(255,255,255,0.3);">שנ.</span>
+          </div>
+        </div>
+        <div style="margin-bottom:14px;">
+          <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:6px;">תוקף ההודעה:</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            ${(function(){var opts=[['permanent','קבועה'],['12h','12 שעות'],['24h','24 שעות'],['48h','48 שעות']];return opts.map(function(o){var d=o[0],lbl=o[1];var cur=(state.announcement&&state.announcement.duration)||'permanent';var sel=cur===d;return '<button data-action="ann-duration" data-dur="'+d+'" style="padding:8px;border-radius:8px;border:0.5px solid '+(sel?'rgba(201,168,76,0.6)':'rgba(255,255,255,0.1)')+';background:'+(sel?'rgba(201,168,76,0.15)':'rgba(255,255,255,0.04)')+';color:'+(sel?'#c9a84c':'rgba(255,255,255,0.55)')+';font-size:12px;cursor:pointer;">'+lbl+'</button>';}).join('');})()}
+          </div>
+        </div>
+        <button data-action="ann-save" style="width:100%;padding:12px;background:rgba(201,168,76,0.15);border:0.5px solid rgba(201,168,76,0.4);border-radius:10px;color:#c9a84c;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px;">💾 שמור הודעה</button>
+        ${state.announcement&&state.announcement.active&&state.announcement.text ? '<button data-action="ann-clear" style="width:100%;padding:10px;background:rgba(220,50,50,0.1);border:0.5px solid rgba(220,50,50,0.3);border-radius:10px;color:#ff6b6b;font-size:13px;cursor:pointer;">🗑 מחק הודעה</button>' : ''}
+        ${state.success?'<div style="text-align:center;color:#4caf50;margin-top:8px;font-size:13px;">'+state.success+'</div>':''}
+      </div>
+    </div>` : ''}
   ${state.rescheduleAppt ? renderRescheduleModal() : ''}`;
 }
 
@@ -1100,6 +1182,28 @@ function renderOwnerStats() {
   `;
 }
 
+function renderOwnerAnnouncement() {
+  const ann = state.announcement;
+  const isActive = ann && ann.active && ann.text;
+  const expired = isActive && ann.expires_at && new Date(ann.expires_at) < new Date();
+  const currentText = (isActive && !expired) ? ann.text : '';
+  const currentDuration = (isActive && !expired) ? (ann.duration||'permanent') : 'permanent';
+  const durBtns = [['permanent','קבועה'],['12h','12 שעות'],['24h','24 שעות'],['48h','48 שעות']].map(function(o){
+    const d=o[0],lbl=o[1],sel=currentDuration===d;
+    return '<button data-action="ann-duration" data-dur="'+d+'" style="padding:10px;border-radius:10px;border:0.5px solid '+(sel?'rgba(201,168,76,0.6)':'rgba(255,255,255,0.1)')+';background:'+(sel?'rgba(201,168,76,0.15)':'rgba(255,255,255,0.04)')+';color:'+(sel?'#c9a84c':'rgba(255,255,255,0.6)')+';font-size:13px;cursor:pointer;">'+lbl+'</button>';
+  }).join('');
+  const clearBtn = (isActive&&!expired) ? '<button data-action="ann-clear" style="width:100%;padding:12px;background:rgba(220,50,50,0.1);border:0.5px solid rgba(220,50,50,0.3);border-radius:12px;color:#ff6b6b;font-size:14px;cursor:pointer;margin-top:10px;">🗑 מחק הודעה</button>' : '';
+  const successDiv = state.success ? '<div style="text-align:center;color:#4caf50;margin-top:10px;font-size:14px;">'+state.success+'</div>' : '';
+  return '<div>'
+    +'<div style="font-size:14px;color:rgba(255,255,255,0.5);margin-bottom:12px;">הודעה שתופיע ללקוחות בכניסה (נעלמת אחרי 4 שניות)</div>'
+    +'<textarea id="ann-input" placeholder="כתוב הודעה ללקוחות..." style="width:100%;height:100px;background:rgba(255,255,255,0.07);border:0.5px solid rgba(255,255,255,0.18);border-radius:12px;padding:12px;color:#fff;font-size:15px;resize:none;outline:none;font-family:inherit;">'+currentText+'</textarea>'
+    +'<div style="margin-top:12px;margin-bottom:16px;">'
+    +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;"><label style="font-size:13px;color:rgba(255,255,255,0.5);">שניות הצגה:</label><input id="ann-seconds" type="range" min="2" max="10" step="1" value="'+((ann&&ann.seconds)||4)+'" style="flex:1;accent-color:#c9a84c;" oninput="document.getElementById(\"ann-sec-val\").textContent=this.value"><span id="ann-sec-val" style="color:#c9a84c;font-weight:600;min-width:20px;">'+((ann&&ann.seconds)||4)+'</span> שנ.</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'+durBtns+'</div>'
+    +'</div>'
+    +'<button data-action="ann-save" style="width:100%;padding:13px;background:rgba(201,168,76,0.15);border:0.5px solid rgba(201,168,76,0.4);border-radius:12px;color:#c9a84c;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;">💾 שמור הודעה</button>'
+    +clearBtn+successDiv+'</div>';
+}
 function renderCustomer() {
   const today = formatDate(new Date());
   const myAppts = state.appointments.filter(a=>a.username===state.user.username&&a.date>=today).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
@@ -1532,7 +1636,7 @@ async function handleAction(e) {
     const { name, phone, username, password } = state.form;
     doRegister(name, phone, username, password);
   }
-  else if (action==='logout') { const u=state.user; if(u?.role!=='guest') addLog('התנתקות', u?.role==='owner'?'בעל המספרה התנתק':`${u?.name||''} התנתק`, u?.username||'').catch(()=>{}); state.user=null; state.guest=false; state.view='login'; state.form={}; state.selectedDate=null; state.appointments=[]; clearSession(); render(); }
+  else if (action==='logout') { const u=state.user; if(u?.role!=='guest') addLog('התנתקות', u?.role==='owner'?'בעל המספרה התנתק':`${u?.name||''} התנתק`, u?.username||'').catch(()=>{}); state.user=null; state.guest=false; state.view='login'; state.form={}; state.selectedDate=null; state.appointments=[]; state._annShown=false; clearSession(); render(); }
   else if (action==='owner-tab') {
     state.ownerTab=e.currentTarget.dataset.tab;
     if (state.ownerTab==='list') state.listFilter='pending';
@@ -1738,6 +1842,45 @@ async function handleAction(e) {
   }
   else if (action==='toggle-settings-menu') { state.showSettingsMenu=!state.showSettingsMenu; render(); }
   else if (action==='request-delete-account') { state.showSettingsMenu=false; state.confirmDeleteAccount=true; render(); }
+  else if (action==='open-ann-modal') {
+    state.showAnnModal=true; render();
+  }
+  else if (action==='close-ann-modal') {
+    state.showAnnModal=false; render();
+  }
+  else if (action==='ann-duration') {
+    if (!state.announcement) state.announcement = {active:false,text:'',duration:'permanent'};
+    const savedText = document.getElementById('ann-input')?.value;
+    if (savedText !== undefined) state.announcement.text = savedText;
+    state.announcement.duration = e.currentTarget.dataset.dur;
+    // עדכן כפתורי תוקף ישירות ללא render מלא
+    document.querySelectorAll('[data-action="ann-duration"]').forEach(btn => {
+      const sel = btn.dataset.dur === state.announcement.duration;
+      btn.style.borderColor = sel ? 'rgba(201,168,76,0.6)' : 'rgba(255,255,255,0.1)';
+      btn.style.background = sel ? 'rgba(201,168,76,0.15)' : 'rgba(255,255,255,0.04)';
+      btn.style.color = sel ? '#c9a84c' : 'rgba(255,255,255,0.55)';
+    });
+  }
+  else if (action==='ann-save') {
+    const text = document.getElementById('ann-input')?.value?.trim()||'';
+    if (!text) { state.error='יש לכתוב הודעה'; render(); return; }
+    const dur = state.announcement?.duration||'permanent';
+    const secs = parseInt(document.getElementById('ann-seconds')?.value||'4');
+    state.loading=true; render();
+    saveAnnouncement(text, dur, secs).then(async () => {
+      state.announcement = await getAnnouncement().catch(()=>null);
+      state.loading=false; state.success='✅ ההודעה נשמרה ותוצג ללקוחות בכניסה!'; render(); setTimeout(()=>{ state.success=''; render(); }, 3000);
+      setTimeout(()=>{ state.success=''; render(); }, 3000);
+    });
+  }
+  else if (action==='ann-clear') {
+    state.loading=true; render();
+    clearAnnouncement().then(async () => {
+      state.announcement = null;
+      state.loading=false; state.success='ההודעה נמחקה'; render();
+      setTimeout(()=>{ state.success=''; render(); }, 2000);
+    });
+  }
   else if (action==='settings-reset-password') {
     state.showSettingsMenu=false;
     state.forgotMode=true; state.forgotType='password';
@@ -1861,6 +2004,7 @@ async function doLoginCustomer(u,p) {
       state.appointments=a; state.availability=v; state.user=users[0];
       state.view='customer'; state.selectedDate=null; state.calendarWeekOffset=0;
       state.selectedService=null; state.pendingTime=null;
+      state._annShown=false;
       saveSession(users[0]);
     } else {
       const lo = recordFailedAttempt(u);
@@ -2349,6 +2493,11 @@ function renderSadmin() {
 
 // אתחול — אם יש סשן שמור, טען נתונים אוטומטית
 async function init() {
+  const ann = await getAnnouncement().catch(()=>null);
+  if (ann && ann.active && ann.text) {
+    const expired = ann.expires_at && new Date(ann.expires_at) < new Date();
+    if (!expired) state.announcement = ann;
+  }
   render(); // הצג מיד (עם loading אם צריך)
   if (state.user) {
     try {
@@ -2372,6 +2521,23 @@ async function init() {
   setTimeout(function() {
     if (splashEl) {
       splashEl.style.opacity = '0';
+      // הצג הודעה אם קיימת
+      if (state.announcement && state.announcement.active && state.announcement.text) {
+        const expired = state.announcement.expires_at && new Date(state.announcement.expires_at) < new Date();
+        if (!expired) {
+          const popup = document.getElementById('ann-popup');
+          const textEl = document.getElementById('ann-text');
+          if (popup && textEl) {
+            textEl.textContent = state.announcement.text;
+            popup.style.display = 'flex';
+            const annSecs = (state.announcement.seconds||4)*1000;
+            setTimeout(function() {
+              popup.style.opacity = '0';
+              setTimeout(function() { popup.style.display = 'none'; }, 600);
+            }, annSecs);
+          }
+        }
+      }
       setTimeout(function() { splashEl.style.display = 'none'; }, 600);
     }
   }, 3800);
@@ -2409,7 +2575,7 @@ document.addEventListener('click', function(e) {
 // Polling — בודק עדכונים כל 15 שניות כשהמשתמש מחובר
 setInterval(async () => {
   // רק admin מקבל רענון — לקוח ו-sadmin לא
-  if (!state.user || state.view !== 'owner') return;
+  if (!state.user || state.view !== 'owner' || state.showAnnModal) return;
   try {
     const [appts, avail] = await Promise.all([
       getAppointments(),
