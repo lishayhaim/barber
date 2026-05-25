@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Barber Boss - מערכת תורים v22.1</title>
+<title>Barber Boss - מערכת תורים v22.2</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #000; min-height: 100vh; padding-bottom: env(safe-area-inset-bottom); }
@@ -574,7 +574,7 @@ function renderLogin() {
       <img src="${IMG}" class="logo-img" style="width:140px;height:140px;border-radius:50%;object-fit:cover;border:2px solid rgba(201,168,76,0.5);margin-bottom:8px;">
       <h1 style="color:#fff;font-size:24.2px;font-weight:600;letter-spacing:2px;">Lishay Barber</h1>
       <p style="color:rgba(255,255,255,0.45);font-size:15.4px;margin-top:6px;">מערכת ניהול תורים</p>
-      <p style="color:rgba(255,255,255,0.2);font-size:12.1px;margin-top:4px;">v22.1</p>
+      <p style="color:rgba(255,255,255,0.2);font-size:12.1px;margin-top:4px;">v22.2</p>
     </div>
     <div style="background:rgba(255,255,255,0.07);border:0.5px solid rgba(201,168,76,0.3);border-radius:20px;padding:1.75rem;width:100%;max-width:380px;">
       ${state.error?`<div style="background:rgba(220,50,50,0.15);border:0.5px solid rgba(220,50,50,0.4);color:#ff8080;padding:10px 14px;border-radius:10px;font-size:15.4px;margin-bottom:1rem;text-align:center;">${state.error}</div>`:''}
@@ -665,9 +665,9 @@ function renderOwner() {
           </div>
         </div>
       </div>
-      <button data-action="logout" style="background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);padding:8px 14px;border-radius:10px;font-size:14.3px;cursor:pointer;">יציאה</button>
-      <button data-action="refresh-appts" style="background:rgba(201,168,76,0.15);border:0.5px solid rgba(201,168,76,0.3);color:#c9a84c;padding:8px 10px;border-radius:10px;font-size:17.6px;cursor:pointer;">↻</button>
       <button data-action="open-ann-modal" style="background:rgba(201,168,76,0.12);border:0.5px solid rgba(201,168,76,0.35);color:#c9a84c;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">✉️ הודעת פתיחה</button>
+      <button data-action="refresh-appts" style="background:rgba(201,168,76,0.15);border:0.5px solid rgba(201,168,76,0.3);color:#c9a84c;padding:8px 10px;border-radius:10px;font-size:17.6px;cursor:pointer;">↻</button>
+      <button data-action="logout" style="background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);padding:8px 14px;border-radius:10px;font-size:14.3px;cursor:pointer;">יציאה</button>
     </div>
     <div style="display:flex;gap:10px;padding:1rem;border-bottom:0.5px solid rgba(255,255,255,0.06);">
       <button data-action="stat-click" data-filter="today" style="flex:1;background:${state.listFilter==='today'?'rgba(201,168,76,0.2)':'rgba(201,168,76,0.1)'};border:${state.listFilter==='today'?'1px solid rgba(201,168,76,0.6)':'0.5px solid rgba(201,168,76,0.25)'};border-radius:12px;padding:12px;text-align:center;cursor:pointer;">
