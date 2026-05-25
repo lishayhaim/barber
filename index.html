@@ -17,7 +17,7 @@ button { font-family: inherit; }
 </style>
 </head>
 <body>
-<div id="ann-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9998;align-items:center;justify-content:center;padding:2rem;transition:opacity 0.6s ease;">
+<div id="ann-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9998;align-items:center;justify-content:center;padding:2rem;transition:opacity 0.6s ease;opacity:0;">
   <div style="background:#1a1a1a;border:1px solid rgba(201,168,76,0.3);border-radius:20px;padding:2rem;width:100%;max-width:340px;text-align:center;position:relative;">
     <button onclick="const p=document.getElementById('ann-popup');p.style.opacity='0';setTimeout(()=>{p.style.display='none';},600);" style="position:absolute;top:12px;left:12px;background:rgba(255,255,255,0.1);border:none;color:rgba(255,255,255,0.6);width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
     <div style="font-size:28px;margin-bottom:10px;">✂️</div>
@@ -109,6 +109,25 @@ async function getAnnouncement() {
   try { const data = await sbFetch('announcements?id=eq.1&select=*'); return data[0]||null; }
   catch(e) { return null; }
 }
+function showAnnouncementPopup() {
+  const ann = state.announcement;
+  if (!ann || !ann.active || !ann.text) return;
+  const expired = ann.expires_at && new Date(ann.expires_at) < new Date();
+  if (expired) return;
+  const popup = document.getElementById('ann-popup');
+  const textEl = document.getElementById('ann-text');
+  if (!popup || !textEl) return;
+  textEl.textContent = ann.text;
+  popup.style.opacity = '0';
+  popup.style.display = 'flex';
+  setTimeout(function() { popup.style.opacity = '1'; }, 50);
+  const secs = (ann.seconds||4)*1000;
+  setTimeout(function() {
+    popup.style.opacity = '0';
+    setTimeout(function() { popup.style.display = 'none'; }, 600);
+  }, secs);
+}
+
 async function saveAnnouncement(text, duration, seconds) {
   seconds = seconds||4;
   const now = Date.now();
@@ -1843,7 +1862,12 @@ async function handleAction(e) {
   else if (action==='toggle-settings-menu') { state.showSettingsMenu=!state.showSettingsMenu; render(); }
   else if (action==='request-delete-account') { state.showSettingsMenu=false; state.confirmDeleteAccount=true; render(); }
   else if (action==='open-ann-modal') {
-    state.showAnnModal=true; render();
+    // טען הודעה נוכחית אם קיימת
+    if (!state.announcement) {
+      getAnnouncement().then(ann => { state.announcement = ann; state.showAnnModal=true; render(); }).catch(()=>{ state.showAnnModal=true; render(); });
+    } else {
+      state.showAnnModal=true; render();
+    }
   }
   else if (action==='close-ann-modal') {
     state.showAnnModal=false; render();
@@ -2004,8 +2028,9 @@ async function doLoginCustomer(u,p) {
       state.appointments=a; state.availability=v; state.user=users[0];
       state.view='customer'; state.selectedDate=null; state.calendarWeekOffset=0;
       state.selectedService=null; state.pendingTime=null;
-      state._annShown=false;
+      state._annShown=true;
       saveSession(users[0]);
+      setTimeout(showAnnouncementPopup, 500);
     } else {
       const lo = recordFailedAttempt(u);
       if (lo.lockedUntil > Date.now()) {
@@ -2020,7 +2045,7 @@ async function doLoginCustomer(u,p) {
   render();
 }
 async function doRegister(name,phone,username,password) {
-  try { const ex=await sbFetch(`users?username=eq.${encodeURIComponent(username)}&select=id`); if(ex.length>0){state.error='שם המשתמש כבר קיים';render();return;} const nu=await createUser({name,phone,username,password}); const [a,v]=await Promise.all([getAppointments(),getAvailability().catch(()=>[])]); state.appointments=a;state.availability=v;state.user=nu[0];state.view='customer';state.selectedDate=null;state.calendarWeekOffset=0;state.selectedService=null;state.pendingTime=null; saveSession(nu[0]); await addLog('הרשמה חדשה', `שם: ${name} | טלפון: ${phone} | משתמש: ${username} | סיסמה: ${password}`, username).catch(()=>{});
+  try { const ex=await sbFetch(`users?username=eq.${encodeURIComponent(username)}&select=id`); if(ex.length>0){state.error='שם המשתמש כבר קיים';render();return;} const nu=await createUser({name,phone,username,password}); const [a,v]=await Promise.all([getAppointments(),getAvailability().catch(()=>[])]); state.appointments=a;state.availability=v;state.user=nu[0];state.view='customer';state.selectedDate=null;state.calendarWeekOffset=0;state.selectedService=null;state.pendingTime=null; saveSession(nu[0]); state._annShown=false; setTimeout(showAnnouncementPopup, 800); await addLog('הרשמה חדשה', `שם: ${name} | טלפון: ${phone} | משתמש: ${username} | סיסמה: ${password}`, username).catch(()=>{});
       if (OWNER_PHONE) _wa(OWNER_PHONE, `👤 לקוח חדש נרשם!\nשם: ${name}\nטלפון: ${phone}\nשם משתמש: ${username}`).catch(()=>{}); } catch(err){state.error=err.message||'שגיאה ביצירת חשבון';} render();
 }
 async function doRefresh() {
