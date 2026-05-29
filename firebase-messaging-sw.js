@@ -19,22 +19,24 @@ messaging.onBackgroundMessage((payload) => {
     body,
     icon: '/barber/icon-192.png',
     badge: '/barber/icon-192.png',
-    data: { url: '/barber/?msg=' + encodeURIComponent(body) + '&title=' + encodeURIComponent(title) }
+    data: { title, body }
   });
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || '/barber/';
+  const title = event.notification.data?.title || '';
+  const body = event.notification.data?.body || '';
+  const targetUrl = 'https://lishayhaim.github.io/barber/?msg=' + encodeURIComponent(body) + '&msgtitle=' + encodeURIComponent(title);
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
-        if (client.url.includes('/barber/') && 'focus' in client) {
-          client.postMessage({ type: 'push-notification-click', url });
+        if ('focus' in client) {
+          client.navigate(targetUrl);
           return client.focus();
         }
       }
-      return clients.openWindow(url);
+      return clients.openWindow(targetUrl);
     })
   );
 });
