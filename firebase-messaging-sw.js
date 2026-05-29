@@ -25,18 +25,22 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const title = event.notification.data?.title || '';
+  const title = event.notification.data?.title || 'Lishay Barber';
   const body = event.notification.data?.body || '';
-  const targetUrl = 'https://lishayhaim.github.io/barber/?msg=' + encodeURIComponent(body) + '&msgtitle=' + encodeURIComponent(title);
+  
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+    // שמור את ההודעה ב-IndexedDB כדי שהאפליקציה תקרא אותה
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // שלח לכל החלונות הפתוחים
       for (const client of clientList) {
-        if ('focus' in client) {
-          client.navigate(targetUrl);
-          return client.focus();
-        }
+        client.postMessage({ type: 'push-clicked', title, body });
       }
-      return clients.openWindow(targetUrl);
+      // פתח את האפליקציה עם פרמטרים ב-URL
+      const url = 'https://lishayhaim.github.io/barber/?pushmsg=' + encodeURIComponent(body) + '&pushtitle=' + encodeURIComponent(title);
+      if (clientList.length > 0) {
+        return clientList[0].navigate(url).then(c => c.focus()).catch(() => self.clients.openWindow(url));
+      }
+      return self.clients.openWindow(url);
     })
   );
 });
