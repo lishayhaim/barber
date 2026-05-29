@@ -18,6 +18,23 @@ messaging.onBackgroundMessage((payload) => {
   self.registration.showNotification(title, {
     body,
     icon: '/barber/icon-192.png',
-    badge: '/barber/icon-192.png'
+    badge: '/barber/icon-192.png',
+    data: { url: '/barber/?msg=' + encodeURIComponent(body) + '&title=' + encodeURIComponent(title) }
   });
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || '/barber/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes('/barber/') && 'focus' in client) {
+          client.postMessage({ type: 'push-notification-click', url });
+          return client.focus();
+        }
+      }
+      return clients.openWindow(url);
+    })
+  );
 });
