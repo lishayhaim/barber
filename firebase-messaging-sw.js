@@ -12,33 +12,24 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// לא מציגים התראה ידנית — Firebase עושה זאת אוטומטית
+// רק שומרים את הנתונים ל-notificationclick
 messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title || 'Lishay Barber';
-  const body = payload.notification?.body || '';
-  self.registration.showNotification(title, {
-    body,
-    icon: '/barber/icon-192.png',
-    badge: '/barber/icon-192.png',
-    data: { title, body }
-  });
+  // Firebase יציג את ההתראה אוטומטית מה-notification payload
+  // אנחנו רק מעדכנים את ה-data
+  return;
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const title = event.notification.data?.title || 'Lishay Barber';
-  const body = event.notification.data?.body || '';
+  const title = event.notification.title || 'Lishay Barber';
+  const body = event.notification.body || '';
+  const url = 'https://lishayhaim.github.io/barber/?pushmsg=' + encodeURIComponent(body) + '&pushtitle=' + encodeURIComponent(title);
   
   event.waitUntil(
-    // שמור את ההודעה ב-IndexedDB כדי שהאפליקציה תקרא אותה
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // שלח לכל החלונות הפתוחים
-      for (const client of clientList) {
-        client.postMessage({ type: 'push-clicked', title, body });
-      }
-      // פתח את האפליקציה עם פרמטרים ב-URL
-      const url = 'https://lishayhaim.github.io/barber/?pushmsg=' + encodeURIComponent(body) + '&pushtitle=' + encodeURIComponent(title);
       if (clientList.length > 0) {
-        return clientList[0].navigate(url).then(c => c.focus()).catch(() => self.clients.openWindow(url));
+        try { return clientList[0].navigate(url).then(c => c && c.focus()); } catch(e) {}
       }
       return self.clients.openWindow(url);
     })
