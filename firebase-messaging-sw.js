@@ -12,26 +12,41 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// לא מציגים התראה ידנית — Firebase עושה זאת אוטומטית
-// רק שומרים את הנתונים ל-notificationclick
 messaging.onBackgroundMessage((payload) => {
-  // Firebase יציג את ההתראה אוטומטית מה-notification payload
-  // אנחנו רק מעדכנים את ה-data
   return;
 });
+
+function savePendingNotif(title, body) {
+  return new Promise((resolve) => {
+    const req = indexedDB.open('barber-notif', 1);
+    req.onupgradeneeded = (e) => e.target.result.createObjectStore('notifs');
+    req.onsuccess = (e) => {
+      const db = e.target.result;
+      const tx = db.transaction('notifs', 'readwrite');
+      tx.objectStore('notifs').put({ title, body, ts: Date.now() }, 'pending');
+      tx.oncomplete = resolve;
+    };
+    req.onerror = resolve;
+  });
+}
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const title = event.notification.title || 'Lishay Barber';
   const body = event.notification.body || '';
-  const url = 'https://lishayhaim.github.io/barber/?pushmsg=' + encodeURIComponent(body) + '&pushtitle=' + encodeURIComponent(title);
   
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      if (clientList.length > 0) {
-        try { return clientList[0].navigate(url).then(c => c && c.focus()); } catch(e) {}
-      }
-      return self.clients.openWindow(url);
+    savePendingNotif(title, body).then(() => {
+      return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+        // שלח הודעה לחלונות פתוחים
+        for (const client of clientList) {
+          client.postMessage({ type: 'push-clicked', title, body });
+        }
+        if (clientList.length > 0) {
+          return clientList[0].focus();
+        }
+        return self.clients.openWindow('https://lishayhaim.github.io/barber/');
+      });
     })
   );
 });
